@@ -22,7 +22,9 @@ import { productsApi, type CategoryDto } from "./productApi";
 import ProductLocationsField from "./ProductLocationsField";
 import DeliveryTiersManager from "./DeliveryTiersManager";
 import DiscountTiersManager from "./DiscountTiersManager";
+import PreparationSpecsManager from "./PreparationSpecsManager";
 import type { DeliveryTierDto, DiscountTierDto } from "./tierApi";
+import type { PreparationSpecificationDto } from "./productApi";
 
 /* ────────────────────── Types ────────────────────── */
 
@@ -168,6 +170,7 @@ const AddProduct: React.FC = () => {
     /* ── Tiers State ── */
     const [deliveryTiers, setDeliveryTiers] = useState<DeliveryTierDto[]>([]);
     const [discountTiers, setDiscountTiers] = useState<DiscountTierDto[]>([]);
+    const [preparationSpecs, setPreparationSpecs] = useState<Partial<PreparationSpecificationDto>[]>([]);
 
     const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
 
@@ -228,6 +231,7 @@ const AddProduct: React.FC = () => {
                 })),
             deliveryTiers,
             discountTiers,
+            preparationSpecs,
         };
 
         submitted.current = true;
@@ -493,6 +497,14 @@ const AddProduct: React.FC = () => {
                         }}
                     />
                 </div>
+
+                <PreparationSpecsManager
+                    productId={0}
+                    onSpecsChange={(specs) => {
+                        setPreparationSpecs(specs);
+                        console.log("Preparation specs updated:", specs);
+                    }}
+                />
 
                 {/* ─── 4. Main Image ─── */}
                 <Section title="Main Image">

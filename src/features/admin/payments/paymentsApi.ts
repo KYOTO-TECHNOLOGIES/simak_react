@@ -66,7 +66,7 @@ export const paymentsApi = {
     },
 
     /**
-     * Update COD payment status (e.g. mark as collected/failed)
+     * Update payment status (mainly for COD or specific admin overrides)
      */
     updateStatus: async (
         id: number,
@@ -75,6 +75,46 @@ export const paymentsApi = {
         const res = await api.patch<PaymentDto>(`/orders/payments/${id}/`, {
             status: status.toUpperCase(),
         });
+        return res.data;
+    },
+
+    /**
+     * Create a refund for a successful payment.
+     */
+    createRefund: async (
+        paymentId: number,
+        data: { amount_fils?: number; currency_code?: string }
+    ): Promise<{ message: string; refund_id: string; status: string; amount: number; currency: string }> => {
+        const res = await api.post<{ message: string; refund_id: string; status: string; amount: number; currency: string }>(
+            `/orders/payments/${paymentId}/create_refund/`,
+            data
+        );
+        return res.data;
+    },
+
+    /**
+     * Check the status of a refund for a payment.
+     */
+    getRefundStatus: async (
+        paymentId: number
+    ): Promise<{
+        refund_id: string;
+        status: string;
+        amount: number;
+        currency: string;
+        created_at: string;
+        processed_at: string | null;
+        reason: string | null;
+    }> => {
+        const res = await api.get<{
+            refund_id: string;
+            status: string;
+            amount: number;
+            currency: string;
+            created_at: string;
+            processed_at: string | null;
+            reason: string | null;
+        }>(`/orders/payments/${paymentId}/refund_status/`);
         return res.data;
     },
 };

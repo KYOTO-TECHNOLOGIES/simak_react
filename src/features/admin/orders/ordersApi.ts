@@ -9,6 +9,12 @@ export interface OrderItemDto {
     quantity: number;
     price: string;
     subtotal: string;
+    preparation_specification_name?: string | null;
+    preparation_instructions?: string | null;
+    preparation_extra_price?: string;
+    total_with_preparation?: string;
+    base_unit_price?: string;
+    unit_price?: string;
 }
 
 /* ── Shipping Address DTO ── */

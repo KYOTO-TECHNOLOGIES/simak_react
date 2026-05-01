@@ -5,10 +5,18 @@ import {
     Heart,
     ShoppingCart,
     Trash2,
-    ArrowRight
+    ArrowRight,
+    Zap,
+    X
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { type ProductDto } from "../admin/products/productApi";
+import { useAppDispatch, useRequireAuth } from "../../hooks";
+import { fetchCartRequest } from "../admin/cart/cartSlice";
+import { cartsApi } from "../admin/cart/cartApi";
+import { useToast } from "../../components/ui/Toast";
+import PreparationSpecModal from "../../components/userside/PreparationSpecModal";
+import { useNavigate } from "react-router-dom";
 
 /** Main image field → feature gallery image → first gallery image */
 const getBestProductImage = (product: ProductDto): string => {
@@ -22,6 +30,14 @@ const WishlistPage: React.FC = () => {
     const { t } = useTranslation("common");
     const [wishlistItems, setWishlistItems] = useState<ProductDto[]>([]);
     const [loading, setLoading] = useState(true);
+    const dispatch = useAppDispatch();
+    const requireAuth = useRequireAuth();
+    const toast = useToast();
+    const navigate = useNavigate();
+
+    // Preparation Spec Modal State
+    const [selectedProductForSpec, setSelectedProductForSpec] = useState<ProductDto | null>(null);
+    const [specModalMode, setSpecModalMode] = useState<"cart" | "checkout">("cart");
 
     useEffect(() => {
         loadWishlist();
@@ -52,6 +68,61 @@ const WishlistPage: React.FC = () => {
         setWishlistItems([]);
         localStorage.removeItem("wishlist");
         window.dispatchEvent(new Event("storage"));
+    };
+
+    const handleAddToCart = (e: React.MouseEvent, product: ProductDto) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (product.preparation_specifications && product.preparation_specifications.length > 0) {
+            setSelectedProductForSpec(product);
+            setSpecModalMode("cart");
+            return;
+        }
+
+        requireAuth(async () => {
+            try {
+                const result = await cartsApi.addItem(product.id, 1);
+                if (result?.error) {
+                    toast.show(result.error, "error");
+                    return;
+                }
+                dispatch(fetchCartRequest());
+                toast.show(`${product.name} added to cart`, "cart");
+            } catch (err: any) {
+                const msg = err?.response?.data?.error || "Failed to add item to cart";
+                toast.show(msg, "error");
+            }
+        })();
+    };
+
+    const handleConfirmSpecSelection = async (preparationId: number, instructions: string) => {
+        if (!selectedProductForSpec) return;
+
+        try {
+            const result = await cartsApi.addItem(
+                selectedProductForSpec.id,
+                1,
+                preparationId,
+                instructions || undefined
+            );
+
+            if (result?.error) {
+                toast.show(result.error, "error");
+                return;
+            }
+
+            dispatch(fetchCartRequest());
+            toast.show(`${selectedProductForSpec.name} added to cart`, "cart");
+
+            if (specModalMode === "checkout") {
+                navigate("/cart");
+            }
+        } catch (err: any) {
+            const msg = err?.response?.data?.error || "Failed to add item to cart";
+            toast.show(msg, "error");
+            throw err;
+        }
     };
 
     return (
@@ -159,11 +230,13 @@ const WishlistPage: React.FC = () => {
                                                 <span className="text-lg font-black text-slate-900">AED {Number(product.price).toFixed(2)}</span>
                                             )}
 
-                                            <div
-                                                className="w-10 h-10 bg-slate-900 text-white rounded-full flex items-center justify-center group-hover:bg-rose-600 transition-colors shadow-lg shadow-slate-900/10 group-hover:shadow-rose-600/20"
+                                            <button
+                                                onClick={(e) => handleAddToCart(e, product)}
+                                                className="w-10 h-10 bg-slate-900 text-white rounded-full flex items-center justify-center group-hover:bg-rose-600 transition-colors shadow-lg shadow-slate-900/10 group-hover:shadow-rose-600/20 active:scale-90"
+                                                aria-label="Add to Cart"
                                             >
                                                 <ShoppingCart size={16} />
-                                            </div>
+                                            </button>
                                         </div>
                                     </div>
                                 </Link>
@@ -172,6 +245,14 @@ const WishlistPage: React.FC = () => {
                     </div>
                 )}
             </main>
+
+            <PreparationSpecModal
+                product={selectedProductForSpec}
+                isOpen={!!selectedProductForSpec}
+                onClose={() => setSelectedProductForSpec(null)}
+                onConfirm={handleConfirmSpecSelection}
+                mode={specModalMode}
+            />
         </div>
     );
 };

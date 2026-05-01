@@ -107,6 +107,11 @@ export interface CartItem {
     price: number;
     discountPrice?: number;
     finalPrice: number;
+    baseUnitPrice?: number;
+    preparationExtraPrice?: number;
+    preparationSpecification?: number | null;
+    preparationSpecificationDetails?: any | null;
+    preparationInstructions?: string | null;
     image: string | null;
     quantity: number;
     stock: number;
@@ -152,31 +157,26 @@ const cartSlice = createSlice({
             state.error = action.payload;
         },
         addToCart: (state, action: PayloadAction<CartItem>) => {
-            const existing = state.items.find((i) => i.id === action.payload.id);
-            if (existing) {
-                if (existing.quantity < existing.stock) {
-                    existing.quantity += 1;
-                }
-            } else {
-                state.items.push({ ...action.payload, quantity: 1 });
-            }
+            // Optimistic add can't perfectly match prep specs, so we just append if not found by exact cartItemId
+            // The cartSaga will refetch from backend anyway.
+            state.items.push({ ...action.payload, quantity: action.payload.quantity || 1 });
         },
         removeFromCart: (state, action: PayloadAction<number>) => {
-            state.items = state.items.filter((i) => i.id !== action.payload);
+            state.items = state.items.filter((i) => i.cartItemId !== action.payload);
         },
-        updateQuantity: (state, action: PayloadAction<{ id: number; quantity: number }>) => {
+        updateQuantity: (state, action: PayloadAction<{ cartItemId: number; quantity: number }>) => {
             // Mark item as updating — spinner shown, buttons disabled
-            if (!state.updatingItemIds.includes(action.payload.id)) {
-                state.updatingItemIds.push(action.payload.id);
+            if (!state.updatingItemIds.includes(action.payload.cartItemId)) {
+                state.updatingItemIds.push(action.payload.cartItemId);
             }
         },
-        updateQuantitySuccess: (state, action: PayloadAction<{ id: number; quantity: number }>) => {
-            const item = state.items.find((i) => i.id === action.payload.id);
+        updateQuantitySuccess: (state, action: PayloadAction<{ cartItemId: number; quantity: number }>) => {
+            const item = state.items.find((i) => i.cartItemId === action.payload.cartItemId);
             if (item) item.quantity = action.payload.quantity;
-            state.updatingItemIds = state.updatingItemIds.filter((id) => id !== action.payload.id);
+            state.updatingItemIds = state.updatingItemIds.filter((id) => id !== action.payload.cartItemId);
         },
-        updateQuantityFailure: (state, action: PayloadAction<{ id: number; error: string }>) => {
-            state.updatingItemIds = state.updatingItemIds.filter((id) => id !== action.payload.id);
+        updateQuantityFailure: (state, action: PayloadAction<{ cartItemId: number; error: string }>) => {
+            state.updatingItemIds = state.updatingItemIds.filter((id) => id !== action.payload.cartItemId);
         },
         clearCart: (state) => {
             state.items = [];

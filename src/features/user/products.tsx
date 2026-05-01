@@ -3,20 +3,22 @@ import { Link, useSearchParams } from "react-router-dom";
 import { type ProductDto } from "../admin/products/productApi";
 import { motion, AnimatePresence } from "framer-motion";
 import { Helmet } from "react-helmet-async";
-import { Search, ShoppingCart, Star, Filter, ArrowRight, Zap, Loader2, Bell } from "lucide-react";
+import { Search, ShoppingCart, Star, Filter, ArrowRight, Zap, Loader2, Bell, X } from "lucide-react";
 import { useAppDispatch, useAppSelector, useRequireAuth } from "../../hooks";
 import { fetchCartRequest } from "../admin/cart/cartSlice";
 import { cartsApi } from "../admin/cart/cartApi";
 import { useNavigate } from "react-router-dom";
 import ShrimpLoader from "../../components/loader/preloader";
 import { useTranslation } from "react-i18next";
-import { useInfiniteProducts } from "../../hooks/queries";
+import { useInfiniteProducts, useCategories } from "../../hooks/queries";
 import { useToast } from "../../components/ui/Toast";
 import useLanguageToggle from "../../hooks/useLanguageToggle";
 import { productsApi } from "../admin/products/productApi";
 import { processRestockAlerts } from "../../utils/restockAlerts";
 
 import logo from "../../assets/SIMAK FRESH FINAL LOGO-01.svg";
+import InitialLoader from "../../components/loader/spinnerLoader";
+import PreparationSpecModal from "../../components/userside/PreparationSpecModal";
 
 /** Main image field → feature gallery image → first gallery image */
 const getProductImage = (p: ProductDto): string => {
@@ -179,29 +181,28 @@ const ProductCard = memo(({
 });
 
 const UserProductsPage: React.FC = () => {
-    const { t } = useTranslation("product");
+    const { t, i18n } = useTranslation("product");
     useLanguageToggle();
     const dispatch = useAppDispatch();
     const navigate = useNavigate();
     const requireAuth = useRequireAuth();
     const [searchParams, setSearchParams] = useSearchParams();
     const LIMIT = 12;
+    const toast = useToast();
+
+    // Preparation Spec Modal State
+    const [selectedProductForSpec, setSelectedProductForSpec] = useState<ProductDto | null>(null);
+    const [specModalMode, setSpecModalMode] = useState<"cart" | "checkout">("cart");
+
+    // Fetch categories from backend
+    const { data: backendCategories = [] } = useCategories(i18n.language);
 
     // Filters state
     const [searchTerm, setSearchTerm] = useState(searchParams.get("q") || "");
     const [debouncedSearch, setDebouncedSearch] = useState(searchTerm);
-    const category = searchParams.get("category");
     const categoryName = searchParams.get("category_name");
-    const categorySlug = searchParams.get("category_slug");
-    const fixedCategories = useMemo(() => ([
-        { value: "fresh-fish", label: t("filters.freshFish") },
-        { value: "frozen-fish", label: t("filters.frozenFish") },
-        { value: "live-fish", label: t("filters.liveFish") },
-        { value: "light-fish", label: t("filters.lightFish") },
-    ]), [t]);
 
-    const activeFixedCategory = fixedCategories.find((item) => item.value === categorySlug);
-    const pageCategoryLabel = activeFixedCategory?.label || categoryName || category || "";
+    const pageCategoryLabel = categoryName || "";
 
     const handleAllCategories = useCallback(() => {
         const params = new URLSearchParams(searchParams);
@@ -211,11 +212,11 @@ const UserProductsPage: React.FC = () => {
         setSearchParams(params);
     }, [searchParams, setSearchParams]);
 
-    const handleCategoryChipClick = useCallback((slug: string) => {
+    const handleCategoryChipClick = useCallback((name: string) => {
         const params = new URLSearchParams(searchParams);
         params.delete("category");
-        params.delete("category_name");
-        params.set("category_slug", slug);
+        params.delete("category_slug");
+        params.set("category_name", name);
         setSearchParams(params);
     }, [searchParams, setSearchParams]);
 
@@ -232,20 +233,17 @@ const UserProductsPage: React.FC = () => {
         const handler = setTimeout(() => {
             const params: any = {};
             if (searchTerm) params.q = searchTerm;
-            if (category) params.category = category;
-            if (categorySlug) params.category_slug = categorySlug;
-            else if (categoryName) params.category_name = categoryName;
+            if (categoryName) params.category_name = categoryName;
             setSearchParams(params, { replace: true });
         }, 500);
 
         return () => clearTimeout(handler);
-    }, [searchTerm, category, categoryName, categorySlug, setSearchParams]);
+    }, [searchTerm, categoryName, setSearchParams]);
 
     // ✅ TanStack Infinite Query — Load More pagination
     const filters = {
         ...(debouncedSearch && { search: debouncedSearch, q: debouncedSearch }),
-        ...(category && (isNaN(Number(category)) ? { category_slug: category } : { category })),
-        ...(categorySlug ? { category_slug: categorySlug } : categoryName ? { category_name: categoryName } : {}),
+        ...(categoryName ? { category_name: categoryName } : {}),
     };
     const {
         data,
@@ -259,7 +257,6 @@ const UserProductsPage: React.FC = () => {
     const products = useMemo(() => data?.pages.flatMap(page => page.results) || [], [data]);
     const totalCount = data?.pages[0]?.count || 0;
     const error = isError ? t("list.errorLoading") : null;
-    const toast = useToast();
     const authUserId = useAppSelector((state) => state.auth.user?.id);
 
     useEffect(() => {
@@ -284,6 +281,14 @@ const UserProductsPage: React.FC = () => {
         e.preventDefault();
         e.stopPropagation();
 
+        if (product.preparation_specifications && product.preparation_specifications.length > 0) {
+            setSelectedProductForSpec(product);
+            setSpecModalMode("cart");
+            setSelectedPreparationId(null);
+            setPreparationInstructions("");
+            return;
+        }
+
         requireAuth(async () => {
             try {
                 const result = await cartsApi.addItem(product.id, 1);
@@ -304,6 +309,14 @@ const UserProductsPage: React.FC = () => {
         e.preventDefault();
         e.stopPropagation();
 
+        if (product.preparation_specifications && product.preparation_specifications.length > 0) {
+            setSelectedProductForSpec(product);
+            setSpecModalMode("checkout");
+            setSelectedPreparationId(null);
+            setPreparationInstructions("");
+            return;
+        }
+
         requireAuth(async () => {
             try {
                 const result = await cartsApi.addItem(product.id, 1);
@@ -320,6 +333,35 @@ const UserProductsPage: React.FC = () => {
             }
         })();
     }, [dispatch, navigate, requireAuth, toast]);
+
+    const handleConfirmSpecSelection = async (preparationId: number, instructions: string) => {
+        if (!selectedProductForSpec) return;
+
+        try {
+            const result = await cartsApi.addItem(
+                selectedProductForSpec.id,
+                1,
+                preparationId,
+                instructions || undefined
+            );
+            
+            if (result?.error) {
+                toast.show(result.error, "error");
+                return;
+            }
+
+            dispatch(fetchCartRequest());
+            toast.show(`${selectedProductForSpec.name} added to cart`, "cart");
+            
+            if (specModalMode === "checkout") {
+                navigate('/cart');
+            }
+        } catch (err: any) {
+            const msg = err?.response?.data?.error || "Failed to add item to cart";
+            toast.show(msg, "error");
+            throw err; // Re-throw to let the modal handle loading state if needed (though it handles its own)
+        }
+    };
 
     const handleNotifyMe = useCallback((e: React.MouseEvent, product: ProductDto) => {
         e.preventDefault();
@@ -362,7 +404,7 @@ const UserProductsPage: React.FC = () => {
                             <button
                                 onClick={handleAllCategories}
                                 className={`shrink-0 px-5 py-2 rounded-xl text-xs sm:text-sm font-bold tracking-tight transition-all duration-300 whitespace-nowrap active:scale-95 ${
-                                    !category && !categoryName
+                                    !categoryName
                                         ? "bg-[#0b4e62] text-white shadow-lg shadow-[#0b4e62]/20"
                                         : "bg-slate-50 text-slate-500 hover:bg-slate-100 border border-slate-200/50"
                                 }`}
@@ -370,20 +412,20 @@ const UserProductsPage: React.FC = () => {
                                 {t("list.all", { defaultValue: "All Items" })}
                             </button>
 
-                            {/* Category Chips */}
-                            {fixedCategories.map((item) => {
-                                const isActive = categorySlug === item.value;
+                            {/* Category Chips — dynamic from backend */}
+                            {backendCategories.map((cat) => {
+                                const isActive = categoryName === cat.name;
                                 return (
                                     <button
-                                        key={item.value}
-                                        onClick={() => handleCategoryChipClick(item.value)}
+                                        key={cat.id}
+                                        onClick={() => handleCategoryChipClick(cat.name)}
                                         className={`shrink-0 px-5 py-2 rounded-xl text-xs sm:text-sm font-bold tracking-tight transition-all duration-300 whitespace-nowrap active:scale-95 ${
                                             isActive
                                                 ? "bg-[#0b4e62] text-white shadow-lg shadow-[#0b4e62]/20"
                                                 : "bg-slate-50 text-slate-500 hover:bg-slate-100 border border-slate-200/50"
                                         }`}
                                     >
-                                        {item.label}
+                                        {cat.name}
                                     </button>
                                 );
                             })}
@@ -419,7 +461,8 @@ const UserProductsPage: React.FC = () => {
             <main className="max-w-350 mx-auto px-4 sm:px-6 py-6 sm:py-10">
                 {loading && products.length === 0 ? (
                     <div className="flex items-center justify-center min-h-[50vh]">
-                        <ShrimpLoader />
+                        {/* <ShrimpLoader /> */}
+                        <InitialLoader/>
                     </div>
                 ) : error ? (
                     <div className="flex flex-col items-center justify-center py-20 bg-white rounded-3xl shadow-sm border border-slate-100 p-8">
@@ -510,6 +553,15 @@ const UserProductsPage: React.FC = () => {
                     </>
                 )}
             </main>
+
+            {/* Preparation Specification Modal */}
+            <PreparationSpecModal
+                product={selectedProductForSpec}
+                isOpen={!!selectedProductForSpec}
+                onClose={() => setSelectedProductForSpec(null)}
+                onConfirm={handleConfirmSpecSelection}
+                mode={specModalMode}
+            />
         </div>
     );
 };

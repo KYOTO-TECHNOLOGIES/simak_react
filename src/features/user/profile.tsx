@@ -25,6 +25,7 @@ import { api, tokenManager } from "../../services/api";
 import useLanguageToggle from "../../hooks/useLanguageToggle";
 import BackendData from "../../components/ui/BackendData";
 import { useTranslation } from "react-i18next";
+import { normalizeMediaUrl } from "../../utils/media";
 
 /* ═══════════════════════════════════════════════
    Types
@@ -280,8 +281,8 @@ const ProfilePage: React.FC<ProfilePageProps> = () => {
                                 <div className="relative group w-fit">
                                     <div className="w-20 h-20 md:w-24 md:h-24 rounded-2xl bg-white p-1 shadow-lg">
                                         <div className="w-full h-full rounded-[14px] bg-gradient-to-br from-cyan-50 to-slate-50 flex items-center justify-center overflow-hidden">
-                                            {displayUser?.profile?.profile_picture ? (
-                                                <img src={displayUser.profile.profile_picture} alt="Avatar" className="w-full h-full object-cover rounded-[14px]" />
+                                            {normalizeMediaUrl(displayUser?.profile?.profile_picture) ? (
+                                                <img src={normalizeMediaUrl(displayUser.profile.profile_picture)!} alt="Avatar" className="w-full h-full object-cover rounded-[14px]" />
                                             ) : (
                                                 <span className="text-lg md:text-xl font-black text-cyan-600">{initials}</span>
                                             )}

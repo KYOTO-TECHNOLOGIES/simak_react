@@ -5,6 +5,7 @@ import { customersActions } from "./customersSlice";
 import type { Customer, UserDto } from "./customersApi";
 import type { RootState } from "../../../app/store";
 import { setUser } from "../../auth/authSlice";
+import { normalizeMediaUrl } from "../../../utils/media";
 
 function mapUserDtoToCustomer(dto: UserDto): Customer {
   const firstName = dto.first_name || "";
@@ -30,7 +31,7 @@ function mapUserDtoToCustomer(dto: UserDto): Customer {
     isEmailVerified: dto.is_email_verified,
     isPhoneVerified: dto.is_phone_verified,
     googleLinked: !!dto.google_id,
-    profilePicture: dto.profile?.profile_picture ?? null,
+    profilePicture: normalizeMediaUrl(dto.profile?.profile_picture),
     dateOfBirth: dto.profile?.date_of_birth ?? null,
     gender: dto.profile?.gender ?? null,
     preferredLanguage: dto.profile?.preferred_language ?? "en",

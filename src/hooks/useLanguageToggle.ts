@@ -2,6 +2,7 @@ import { useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { useSelector, useDispatch } from "react-redux"; // Import Redux selector and dispatch
 import { setUser } from "../features/auth/authSlice"; // Import setUser action
+import { profileApi } from "../features/user/profileApi";
 
 type Lang = "en" | "ar" | "cn";
 
@@ -65,6 +66,13 @@ const useLanguageToggle = () => {
             preferred_language: lang
           }
         }));
+
+        // Persist to backend (fire-and-forget)
+        profileApi.updateProfile(user.id, {
+          profile: { preferred_language: lang }
+        }).catch(() => {
+          // Silently ignore — local state is already updated
+        });
       }
     },
     [i18n, user, dispatch]
@@ -73,8 +81,8 @@ const useLanguageToggle = () => {
   const toggleLanguage = useCallback(() => {
     const current = (i18n.language as Lang) || "en";
     const next = current === "ar" ? "en" : "ar";
-    i18n.changeLanguage(next);
-  }, [i18n]);
+    setLanguage(next);
+  }, [i18n, setLanguage]);
 
   const currentLanguage = (i18n.language as Lang) || "en";
 

@@ -37,6 +37,20 @@ export interface DeliveryTierDto {
   estimated_days?: string;
 }
 
+/* ── Preparation Specification DTO ── */
+export interface PreparationSpecificationDto {
+  id: number;
+  product?: number;
+  name: string;
+  description: string;
+  image?: string | File | null;
+  extra_price: string;
+  sort_order: number;
+  is_active: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
 /* ── Product DTO returned by backend ── */
 export interface ProductDto {
   id: number;
@@ -58,6 +72,7 @@ export interface ProductDto {
   videos: ProductVideoDto[];
   discount_tiers: DiscountTierDto[];
   delivery_tiers: DeliveryTierDto[];
+  preparation_specifications?: PreparationSpecificationDto[];
   available_locations?: string[];
   available_emirates?: string[];
   service_areas?: Array<string | Record<string, unknown>>;
@@ -159,12 +174,12 @@ export const productsApi = {
     const res = await api.post<CategoryDto>("/products/categories/", payload);
     return res.data;
   },
-  
+
   updateCategory: async (id: number, payload: Partial<CategoryDto> | FormData): Promise<CategoryDto> => {
     const res = await api.patch<CategoryDto>(`/products/categories/${id}/`, payload);
     return res.data;
   },
-  
+
   deleteCategory: async (id: number): Promise<void> => {
     await api.delete(`/products/categories/${id}/`);
   },
@@ -270,5 +285,48 @@ export const productsApi = {
 
   deleteProductVideo: async (id: number): Promise<void> => {
     await api.delete(`/products/product-videos/${id}/`);
+  },
+  /* ── Preparation Specifications ── */
+  listPreparationSpecs: async (
+    productId: number
+  ): Promise<PreparationSpecificationDto[]> => {
+    const res = await api.get<any>(
+      `/products/products/${productId}/preparation-specs/`
+    );
+    return Array.isArray(res.data) ? res.data : (res.data?.results ?? []);
+  },
+
+  createPreparationSpec: async (
+    productId: number,
+    payload: Partial<PreparationSpecificationDto> | FormData
+  ): Promise<PreparationSpecificationDto> => {
+    const isFormData = payload instanceof FormData;
+    const res = await api.post<PreparationSpecificationDto>(
+      `/products/products/${productId}/preparation-specs/`,
+      payload,
+      {
+        ...(isFormData && { timeout: 60000 }),
+      }
+    );
+    return res.data;
+  },
+
+  updatePreparationSpec: async (
+    id: number,
+    payload: Partial<PreparationSpecificationDto> | FormData
+  ): Promise<PreparationSpecificationDto> => {
+    const isFormData = payload instanceof FormData;
+    const res = await api.patch<PreparationSpecificationDto>(
+      `/products/preparation-specs/${id}/`,
+      payload,
+      {
+        ...(isFormData && { timeout: 60000 }),
+      }
+    );
+    return res.data;
+  },
+
+  deletePreparationSpec: async (id: number): Promise<void> => {
+    await api.delete(`/products/preparation-specs/${id}/`);
   },
 };

@@ -229,9 +229,22 @@ const CartPage: React.FC = () => {
                                                 {item.name}
                                             </Link>
                                             <p className="text-xs text-stone-500 font-medium">{t('cart.itemUnit', { quantity: item.quantity })}</p>
+
+                                            {item.preparationSpecificationDetails && (
+                                                <div className="mt-1 bg-stone-50 p-2 rounded-lg border border-stone-100">
+                                                    <p className="text-[11px] text-stone-600">
+                                                        <span className="font-bold text-stone-800">Prep:</span> {item.preparationSpecificationDetails.name}
+                                                    </p>
+                                                    {item.preparationInstructions && (
+                                                        <p className="text-[10px] text-stone-500 mt-0.5 italic">
+                                                            Note: {item.preparationInstructions}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            )}
                                         </div>
                                         <button
-                                            onClick={() => dispatch(removeFromCart(item.id))}
+                                            onClick={() => dispatch(removeFromCart(item.cartItemId!))}
                                             className="text-stone-300 hover:text-cyan-500 transition-colors p-1"
                                             title={t('cart.removeFromCart')}
                                         >
@@ -246,51 +259,51 @@ const CartPage: React.FC = () => {
                                             </p>
                                         )}
                                         <div className="flex items-end justify-between">
-                                        {/* Quantity Control */}
-                                        {(() => {
-                                            const isUpdating = updatingItemIds.includes(item.id);
-                                            const atMax = item.quantity >= item.stock;
-                                            return (
-                                                <div className={`flex items-center gap-3 bg-stone-50 rounded-lg p-1 border ${atMax ? 'border-amber-300' : 'border-stone-200'}`}>
-                                                    <button
-                                                        onClick={() => dispatch(updateQuantity({ id: item.id, quantity: item.quantity - 1 }))}
-                                                        className="w-7 h-7 flex items-center justify-center bg-white rounded-md text-stone-600 hover:text-black shadow-sm disabled:opacity-50"
-                                                        disabled={isUpdating || item.quantity <= 1}
-                                                    >
-                                                        <Minus size={14} />
-                                                    </button>
-                                                    <div className="w-6 flex items-center justify-center">
-                                                        {isUpdating ? (
-                                                            <svg className="animate-spin h-4 w-4 text-cyan-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-                                                            </svg>
-                                                        ) : (
-                                                            <span className="text-sm font-bold">{item.quantity}</span>
-                                                        )}
+                                            {/* Quantity Control */}
+                                            {(() => {
+                                                const isUpdating = updatingItemIds.includes(item.cartItemId!);
+                                                const atMax = item.quantity >= item.stock;
+                                                return (
+                                                    <div className={`flex items-center gap-3 bg-stone-50 rounded-lg p-1 border ${atMax ? 'border-amber-300' : 'border-stone-200'}`}>
+                                                        <button
+                                                            onClick={() => dispatch(updateQuantity({ cartItemId: item.cartItemId!, quantity: item.quantity - 1 }))}
+                                                            className="w-7 h-7 flex items-center justify-center bg-white rounded-md text-stone-600 hover:text-black shadow-sm disabled:opacity-50"
+                                                            disabled={isUpdating || item.quantity <= 1}
+                                                        >
+                                                            <Minus size={14} />
+                                                        </button>
+                                                        <div className="w-6 flex items-center justify-center">
+                                                            {isUpdating ? (
+                                                                <svg className="animate-spin h-4 w-4 text-cyan-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                                                                </svg>
+                                                            ) : (
+                                                                <span className="text-sm font-bold">{item.quantity}</span>
+                                                            )}
+                                                        </div>
+                                                        <button
+                                                            onClick={() => dispatch(updateQuantity({ cartItemId: item.cartItemId!, quantity: item.quantity + 1 }))}
+                                                            className="w-7 h-7 flex items-center justify-center bg-white rounded-md text-stone-600 hover:text-black shadow-sm disabled:opacity-50"
+                                                            disabled={isUpdating || atMax}
+                                                        >
+                                                            <Plus size={14} />
+                                                        </button>
                                                     </div>
-                                                    <button
-                                                        onClick={() => dispatch(updateQuantity({ id: item.id, quantity: item.quantity + 1 }))}
-                                                        className="w-7 h-7 flex items-center justify-center bg-white rounded-md text-stone-600 hover:text-black shadow-sm disabled:opacity-50"
-                                                        disabled={isUpdating || atMax}
-                                                    >
-                                                        <Plus size={14} />
-                                                    </button>
-                                                </div>
-                                            );
-                                        })()}
+                                                );
+                                            })()}
 
-                                        {/* Price */}
-                                        <div className="text-right">
-                                            {item.discountPrice ? (
-                                                <div className="flex flex-col items-end leading-none">
-                                                    <span className="text-[10px] text-stone-400 line-through">AED {(item.price * item.quantity).toFixed(2)}</span>
-                                                    <span className="text-lg font-black text-cyan-900">AED {(item.finalPrice * item.quantity).toFixed(2)}</span>
-                                                </div>
-                                            ) : (
-                                                <span className="text-lg font-black text-cyan-900">AED {(item.price * item.quantity).toFixed(2)}</span>
-                                            )}
-                                        </div>
+                                            {/* Price */}
+                                            <div className="text-right">
+                                                {item.discountPrice ? (
+                                                    <div className="flex flex-col items-end leading-none">
+                                                        <span className="text-[10px] text-stone-400 line-through">AED {(item.price * item.quantity).toFixed(2)}</span>
+                                                        <span className="text-lg font-black text-cyan-900">AED {(item.finalPrice * item.quantity).toFixed(2)}</span>
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-lg font-black text-cyan-900">AED {(item.price * item.quantity).toFixed(2)}</span>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

@@ -6,8 +6,9 @@ import {
   AlertCircle, Clock, ArrowUpRight, ArrowDownRight,
   Receipt, User, ShieldCheck, Landmark,
   LayoutDashboard, ListOrdered, Undo2, HandCoins, BarChart3,
-  ChevronLeft, Columns3, Eye,
+  ChevronLeft, Columns3, Eye, ArrowLeft, ExternalLink,
 } from "lucide-react";
+import { useParams, useNavigate } from "react-router-dom";
 
 import {
   paymentsActions,
@@ -15,6 +16,9 @@ import {
   selectPaymentsStatus,
   selectPaymentsError,
   selectPaymentsTotal,
+  selectDetailedPayment,
+  selectRefundStatus,
+  selectActionLoading,
 } from "./paymentsSlice";
 import type { Payment, PaymentStatus, PaymentMethod } from "./paymentsSlice";
 import { useDebounce } from "../../../hooks/useDebounce";
@@ -41,18 +45,20 @@ const COLUMNS: ColumnDef[] = [
 ];
 
 /* --- TYPES --- */
-type ViewType = "dashboard" | "payments" | "refunds" | "cod";
+type ViewType = "payments" | "refunds" | "cod";
 
 /* --- MAIN COMPONENT --- */
 const PaymentManagement: React.FC = () => {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const dispatch = useDispatch();
 
   const payments = useSelector(selectPayments);
   const status = useSelector(selectPaymentsStatus);
   const error = useSelector(selectPaymentsError);
+  const totalCount = useSelector(selectPaymentsTotal);
 
-  const [currentView, setCurrentView] = useState<ViewType>("payments");
-  const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
+  const [currentTab, setCurrentTab] = useState<ViewType>("payments");
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<PaymentStatus | "All">("All");
   const [methodFilter, setMethodFilter] = useState<PaymentMethod | "All">("All");
@@ -62,10 +68,10 @@ const PaymentManagement: React.FC = () => {
   const [amountMax, setAmountMax] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(5);
-  const debouncedSearchTerm = useDebounce(searchTerm, 2000);
-  const debouncedOrderFilter = useDebounce(orderFilter, 2000);
-  const debouncedCustomerFilter = useDebounce(customerFilter, 2000);
+  const [limit, setLimit] = useState(10);
+  const debouncedSearchTerm = useDebounce(searchTerm, 1000);
+  const debouncedOrderFilter = useDebounce(orderFilter, 1000);
+  const debouncedCustomerFilter = useDebounce(customerFilter, 1000);
 
   // Column visibility
   const [visibleColumns, setVisibleColumns] = useState<Record<ColumnKey, boolean>>(() => {
@@ -95,37 +101,21 @@ const PaymentManagement: React.FC = () => {
   const isVisible = (key: ColumnKey) => visibleColumns[key];
 
   useEffect(() => {
+    if (id) return; // Don't fetch list if viewing details
+
     const params: any = {
       page,
       limit,
-      offset: (page - 1) * limit,
+      ordering: "-transaction_date",
     };
 
     const paymentTerm = debouncedSearchTerm.trim();
     const orderTerm = debouncedOrderFilter.trim();
     const customerTerm = debouncedCustomerFilter.trim();
-    const genericSearchTerm = paymentTerm || orderTerm || customerTerm;
 
-    if (genericSearchTerm) {
-      params.q = genericSearchTerm;
-      params.search = genericSearchTerm;
-    }
-
-    if (paymentTerm) {
-      const normalizedPaymentId = paymentTerm.replace(/^pay[-\s]*/i, "");
-      params.id = normalizedPaymentId;
-      params.payment_id = normalizedPaymentId;
-    }
-
-    if (orderTerm) {
-      const normalizedOrderId = orderTerm.replace(/^ord[-\s]*/i, "");
-      params.order_id = normalizedOrderId;
-      params.order__id = normalizedOrderId;
-    }
-
-    if (customerTerm) {
-      params.customer_name = customerTerm;
-    }
+    if (paymentTerm) params.search = paymentTerm;
+    if (orderTerm) params.order_id = orderTerm.replace(/^ord[-\s]*/i, "");
+    if (customerTerm) params.customer_name = customerTerm;
 
     if (statusFilter !== "All") {
       const statusMap: Record<PaymentStatus, string> = {
@@ -156,6 +146,7 @@ const PaymentManagement: React.FC = () => {
     dispatch(paymentsActions.fetchPaymentsRequest(params));
   }, [
     dispatch,
+    id,
     page,
     limit,
     debouncedSearchTerm,
@@ -166,10 +157,6 @@ const PaymentManagement: React.FC = () => {
     amountMin,
     amountMax,
   ]);
-
-  useEffect(() => {
-    setPage(1);
-  }, [debouncedSearchTerm, debouncedCustomerFilter, orderFilter, statusFilter, methodFilter, amountMin, amountMax]);
 
   const clearFilters = () => {
     setSearchTerm("");
@@ -184,14 +171,10 @@ const PaymentManagement: React.FC = () => {
 
   const hasActiveFilters = !!(searchTerm || statusFilter !== "All" || methodFilter !== "All" || orderFilter || customerFilter || amountMin || amountMax);
 
-  const totalCount = useSelector(selectPaymentsTotal);
-
-  const paginatedPayments = payments;
-
   // Export handler
   const handleExport = () => {
     const headers = ["Payment ID", "Order", "Customer", "Amount", "Method", "Status", "Date"];
-    const rows = paginatedPayments.map(p => [
+    const rows = payments.map(p => [
       p.paymentId,
       p.orderNumber,
       p.customerName,
@@ -218,199 +201,78 @@ const PaymentManagement: React.FC = () => {
     document.body.removeChild(link);
   };
 
-  // Stats computed from current page
-  const totalCollected = paginatedPayments
-    .filter((p) => p.paymentStatus === "Success")
-    .reduce((sum, p) => sum + p.amount, 0);
-  const successRate = paginatedPayments.length > 0
-    ? ((paginatedPayments.filter((p) => p.paymentStatus === "Success").length / paginatedPayments.length) * 100).toFixed(1)
-    : "0";
-  const pendingCod = paginatedPayments
-    .filter((p) => p.paymentMethod === "COD" && p.paymentStatus === "Pending")
-    .reduce((sum, p) => sum + p.amount, 0);
-  const refundedAmount = paginatedPayments
-    .filter((p) => p.paymentStatus === "Refunded")
-    .reduce((sum, p) => sum + p.amount, 0);
+  if (id) {
+    return <PaymentDetailsView paymentId={parseInt(id)} onBack={() => navigate("/admin/payments")} />;
+  }
 
   return (
     <div className="min-h-screen w-full space-y-6 text-[#18181B] bg-[#FDFDFD]">
       {/* --- PAGE HEADER --- */}
-      <div>
-        <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-black">
-          Payments
-        </h1>
-        <p className="text-[#71717A] text-sm mt-1">
-          Track transactions, refunds, and settlements.
-        </p>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-black">
+            Payments
+          </h1>
+          <p className="text-[#71717A] text-sm mt-1">
+            Track transactions, refunds, and settlements.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleExport}
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-[#EEEEEE] rounded-xl text-xs font-bold hover:bg-[#FAFAFA] transition-colors shadow-sm"
+          >
+            <Download size={14} /> Export CSV
+          </button>
+        </div>
       </div>
 
-      {/* --- COMBINED: TABS + CONTENT --- */}
+      {/* --- TABS --- */}
       <div className="bg-white rounded-2xl border border-[#EEEEEE] shadow-sm overflow-hidden">
         <nav className="flex items-center gap-1 p-3 border-b border-[#EEEEEE] overflow-x-auto no-scrollbar">
-          <NavTab id="dashboard" active={currentView} label="Overview" icon={<LayoutDashboard size={14} />} onClick={() => { setCurrentView("dashboard" as ViewType); }} />
-          <NavTab id="payments" active={currentView} label="Payments" icon={<ListOrdered size={14} />} onClick={() => { setCurrentView("payments" as ViewType); setSearchTerm(""); setOrderFilter(""); setCustomerFilter(""); setAmountMin(""); setAmountMax(""); setStatusFilter("All"); setMethodFilter("All"); setPage(1); }} />
-          <NavTab id="refunds" active={currentView} label="Refunds" icon={<Undo2 size={14} />} onClick={() => { setCurrentView("refunds" as ViewType); setSearchTerm(""); setOrderFilter(""); setCustomerFilter(""); setAmountMin(""); setAmountMax(""); setStatusFilter("Refunded"); setMethodFilter("All"); setPage(1); }} />
-          <NavTab id="cod" active={currentView} label="COD" icon={<HandCoins size={14} />} onClick={() => { setCurrentView("cod" as ViewType); setSearchTerm(""); setOrderFilter(""); setCustomerFilter(""); setAmountMin(""); setAmountMax(""); setStatusFilter("All"); setMethodFilter("COD"); setPage(1); }} />
+          <NavTab id="payments" active={currentTab} label="All Payments" icon={<ListOrdered size={14} />} onClick={() => { setCurrentTab("payments"); clearFilters(); }} />
+          <NavTab id="refunds" active={currentTab} label="Refunds" icon={<Undo2 size={14} />} onClick={() => { setCurrentTab("refunds"); clearFilters(); setStatusFilter("Refunded"); }} />
+          <NavTab id="cod" active={currentTab} label="COD Orders" icon={<HandCoins size={14} />} onClick={() => { setCurrentTab("cod"); clearFilters(); setMethodFilter("COD"); }} />
         </nav>
+
         <main className="min-h-[60vh]">
-          {currentView === "dashboard" && (
-            <DashboardView
-              totalCollected={totalCollected}
-              successRate={successRate}
-              pendingCod={pendingCod}
-              refundedAmount={refundedAmount}
-              payments={paginatedPayments}
-            />
-          )}
-
-          {currentView === "payments" && (
-            <PaymentsListView
-              viewType="payments"
-              payments={paginatedPayments}
-              totalCount={totalCount}
-              page={page}
-              limit={limit}
-              onLimitChange={(newLimit) => { setLimit(newLimit); setPage(1); }}
-              status={status}
-              error={error}
-              searchTerm={searchTerm}
-              statusFilter={statusFilter}
-              methodFilter={methodFilter}
-              orderFilter={orderFilter}
-              customerFilter={customerFilter}
-              amountMin={amountMin}
-              amountMax={amountMax}
-              showFilters={showFilters}
-              hasActiveFilters={hasActiveFilters}
-              isVisible={isVisible}
-              isColumnsOpen={isColumnsOpen}
-              visibleColumns={visibleColumns}
-              columnsRef={columnsRef}
-              onSearchChange={(v) => { setSearchTerm(v); setPage(1); }}
-              onStatusChange={(v) => { setStatusFilter(v); setPage(1); }}
-              onMethodChange={(v) => { setMethodFilter(v); setPage(1); }}
-              onOrderFilterChange={(v) => { setOrderFilter(v); setPage(1); }}
-              onCustomerFilterChange={(v) => { setCustomerFilter(v); setPage(1); }}
-              onAmountMinChange={(v) => { setAmountMin(v); setPage(1); }}
-              onAmountMaxChange={(v) => { setAmountMax(v); setPage(1); }}
-              onToggleFilters={() => setShowFilters(!showFilters)}
-              onToggleColumns={() => setIsColumnsOpen(!isColumnsOpen)}
-              onToggleColumn={toggleColumn}
-              onClearFilters={clearFilters}
-              onPageChange={setPage}
-              onSelect={setSelectedPayment}
-              onExport={handleExport}
-            />
-          )}
-
-          {(currentView === "refunds" || currentView === "cod") && (
-            <PaymentsListView
-              viewType={currentView}
-              payments={paginatedPayments}
-              totalCount={totalCount}
-              page={page}
-              limit={limit}
-              onLimitChange={(newLimit) => { setLimit(newLimit); setPage(1); }}
-              status={status}
-              error={error}
-              searchTerm={searchTerm}
-              statusFilter={statusFilter}
-              methodFilter={methodFilter}
-              orderFilter={orderFilter}
-              customerFilter={customerFilter}
-              amountMin={amountMin}
-              amountMax={amountMax}
-              showFilters={showFilters}
-              hasActiveFilters={hasActiveFilters}
-              isVisible={isVisible}
-              isColumnsOpen={isColumnsOpen}
-              visibleColumns={visibleColumns}
-              columnsRef={columnsRef}
-              onSearchChange={(v) => { setSearchTerm(v); setPage(1); }}
-              onStatusChange={(v) => { setStatusFilter(v); setPage(1); }}
-              onMethodChange={(v) => { setMethodFilter(v); setPage(1); }}
-              onOrderFilterChange={(v) => { setOrderFilter(v); setPage(1); }}
-              onCustomerFilterChange={(v) => { setCustomerFilter(v); setPage(1); }}
-              onAmountMinChange={(v) => { setAmountMin(v); setPage(1); }}
-              onAmountMaxChange={(v) => { setAmountMax(v); setPage(1); }}
-              onToggleFilters={() => setShowFilters(!showFilters)}
-              onToggleColumns={() => setIsColumnsOpen(!isColumnsOpen)}
-              onToggleColumn={toggleColumn}
-              onClearFilters={clearFilters}
-              onPageChange={setPage}
-              onSelect={setSelectedPayment}
-              onExport={handleExport}
-            />
-          )}
+          <PaymentsListView
+            viewType={currentTab}
+            payments={payments}
+            totalCount={totalCount}
+            page={page}
+            limit={limit}
+            onLimitChange={(newLimit) => { setLimit(newLimit); setPage(1); }}
+            status={status}
+            error={error}
+            searchTerm={searchTerm}
+            statusFilter={statusFilter}
+            methodFilter={methodFilter}
+            orderFilter={orderFilter}
+            customerFilter={customerFilter}
+            amountMin={amountMin}
+            amountMax={amountMax}
+            showFilters={showFilters}
+            hasActiveFilters={hasActiveFilters}
+            isVisible={isVisible}
+            isColumnsOpen={isColumnsOpen}
+            visibleColumns={visibleColumns}
+            columnsRef={columnsRef}
+            onSearchChange={(v) => { setSearchTerm(v); setPage(1); }}
+            onStatusChange={(v) => { setStatusFilter(v); setPage(1); }}
+            onMethodChange={(v) => { setMethodFilter(v); setPage(1); }}
+            onOrderFilterChange={(v) => { setOrderFilter(v); setPage(1); }}
+            onCustomerFilterChange={(v) => { setCustomerFilter(v); setPage(1); }}
+            onAmountMinChange={(v) => { setAmountMin(v); setPage(1); }}
+            onAmountMaxChange={(v) => { setAmountMax(v); setPage(1); }}
+            onToggleFilters={() => setShowFilters(!showFilters)}
+            onToggleColumns={() => setIsColumnsOpen(!isColumnsOpen)}
+            onToggleColumn={toggleColumn}
+            onClearFilters={clearFilters}
+            onPageChange={setPage}
+            onSelect={(p) => navigate(`/admin/payments/${p.id}`)}
+          />
         </main>
-      </div>
-
-      {/* --- PAYMENT DETAIL DRAWER --- */}
-      {selectedPayment && (
-        <PaymentDetailDrawer
-          payment={selectedPayment}
-          onClose={() => setSelectedPayment(null)}
-        />
-      )}
-    </div>
-  );
-};
-
-/* ── 1. DASHBOARD VIEW ── */
-const DashboardView = ({
-  totalCollected,
-  successRate,
-  pendingCod,
-  refundedAmount,
-  payments,
-}: {
-  totalCollected: number;
-  successRate: string;
-  pendingCod: number;
-  refundedAmount: number;
-  payments: Payment[];
-}) => {
-  const methodCounts = useMemo(() => {
-    const total = payments.length || 1;
-    const counts: Record<string, number> = {};
-    payments.forEach((p) => {
-      counts[p.paymentMethod] = (counts[p.paymentMethod] || 0) + 1;
-    });
-    return Object.entries(counts)
-      .map(([method, count]) => ({
-        label: method,
-        percentage: Math.round((count / total) * 100),
-      }))
-      .sort((a, b) => b.percentage - a.percentage);
-  }, [payments]);
-
-  return (
-    <div className="space-y-6 animate-in slide-in-from-bottom-2 duration-500 p-6">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Total Collected" value={`AED ${totalCollected.toLocaleString("en-IN")}`} trend="+12.5%" trendType="up" sub="This Month" />
-        <StatCard label="Success Rate" value={`${successRate}%`} trend="+0.4%" trendType="up" sub="Gateway health" />
-        <StatCard label="Pending COD" value={`AED ${pendingCod.toLocaleString("en-IN")}`} trend="-5.1%" trendType="down" sub="Collection due" />
-        <StatCard label="Refunded" value={`AED ${refundedAmount.toLocaleString("en-IN")}`} trend="" trendType="up" sub={`Total ${payments.filter((p) => p.paymentStatus === "Refunded").length} refunds`} />
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 bg-white border border-[#EEEEEE] rounded-2xl p-6 h-64 flex flex-col justify-center items-center text-gray-400 shadow-sm">
-          <BarChart3 size={40} className="mb-2 opacity-20" />
-          <p className="text-[10px] font-bold uppercase tracking-widest">Revenue Flow Visualization</p>
-          <p className="text-[10px] text-[#D4D4D8] mt-1">Chart coming soon</p>
-        </div>
-        <div className="bg-white border border-[#EEEEEE] rounded-2xl p-6 h-64 shadow-sm">
-          <h4 className="text-[10px] font-bold uppercase tracking-widest text-[#A1A1AA] mb-4">Method Split</h4>
-          <div className="space-y-4">
-            {methodCounts.length > 0 ? (
-              methodCounts.slice(0, 4).map((m) => (
-                <MethodBar key={m.label} label={m.label} percentage={m.percentage} color={methodColor(m.label)} />
-              ))
-            ) : (
-              <p className="text-xs text-[#A1A1AA] italic">No data yet</p>
-            )}
-          </div>
-        </div>
       </div>
     </div>
   );
@@ -849,30 +711,75 @@ const PaymentsListView = ({
   );
 };
 
-/* ── 3. PAYMENT DETAIL DRAWER ── */
-const PaymentDetailDrawer = ({
-  payment,
-  onClose,
+/* ── 3. PAYMENT DETAIL VIEW ── */
+const PaymentDetailsView = ({
+  paymentId,
+  onBack,
 }: {
-  payment: Payment;
-  onClose: () => void;
+  paymentId: number;
+  onBack: () => void;
 }) => {
-  const [activeTab, setActiveTab] = useState<"summary" | "timeline" | "refund">("summary");
+  const dispatch = useDispatch();
+  const payment = useSelector(selectDetailedPayment);
+  const status = useSelector(selectPaymentsStatus);
+  const error = useSelector(selectPaymentsError);
+  const refundStatus = useSelector(selectRefundStatus);
+  const actionLoading = useSelector(selectActionLoading);
+
+  const [refundAmount, setRefundAmount] = useState("");
+
+  useEffect(() => {
+    dispatch(paymentsActions.fetchPaymentDetailsRequest(paymentId));
+    dispatch(paymentsActions.fetchRefundStatusRequest(paymentId));
+    return () => {
+      dispatch(paymentsActions.clearRefundStatus());
+    };
+  }, [dispatch, paymentId]);
+
+  const handleRefund = () => {
+    if (!payment) return;
+    const fils = refundAmount ? parseInt((parseFloat(refundAmount) * 100).toString()) : undefined;
+    dispatch(paymentsActions.createRefundRequest({ paymentId, amount_fils: fils }));
+  };
+
+  if (status === "loading" && !payment) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
+        <RefreshCcw className="animate-spin text-cyan-600" size={32} />
+        <p className="text-sm font-bold text-zinc-500 uppercase tracking-widest">Loading Payment Details...</p>
+      </div>
+    );
+  }
+
+  if (status === "failed" || !payment) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
+        <AlertCircle className="text-rose-500" size={48} />
+        <h3 className="text-xl font-bold">Failed to load payment</h3>
+        <p className="text-sm text-zinc-500">{error || "An unexpected error occurred"}</p>
+        <button onClick={onBack} className="px-6 py-2 bg-black text-white rounded-xl text-xs font-bold uppercase tracking-widest">
+          Go Back
+        </button>
+      </div>
+    );
+  }
 
   return (
-    <>
-      <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 transition-opacity" onClick={onClose} />
-      <div className="fixed inset-y-0 right-0 w-full max-w-xl bg-white z-60 shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
-        {/* Header */}
-        <div className="p-6 border-b flex justify-between items-center bg-[#FAFAFA]">
+    <div className="space-y-6 animate-in fade-in duration-500">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="flex items-center gap-4">
+          <button onClick={onBack} className="p-2.5 hover:bg-white border border-zinc-200 rounded-xl transition-all shadow-sm">
+            <ArrowLeft size={20} />
+          </button>
           <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-xl font-bold">{payment.paymentId}</h2>
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-bold">{payment.paymentId}</h1>
               <PaymentStatusBadge status={payment.paymentStatus} />
             </div>
-            <p className="text-xs text-[#71717A] mt-1 flex items-center gap-1">
+            <p className="text-xs text-zinc-500 mt-1 flex items-center gap-1">
               <Clock size={12} />
-              {new Date(payment.date).toLocaleDateString("en-IN", {
+              {new Date(payment.date).toLocaleString("en-IN", {
                 day: "2-digit",
                 month: "short",
                 year: "numeric",
@@ -881,362 +788,124 @@ const PaymentDetailDrawer = ({
               })}
             </p>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-white border border-[#EEEEEE] rounded-full transition-colors shadow-sm">
-            <X size={20} />
-          </button>
         </div>
-
-        {/* Detail Tabs */}
-        <div className="flex px-6 border-b bg-white sticky top-0">
-          {(["summary", "timeline", "refund"] as const).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`px-4 py-4 text-[10px] font-bold uppercase tracking-widest border-b-2 transition-all ${activeTab === tab
-                ? "border-black text-black"
-                : "border-transparent text-[#A1A1AA] hover:text-black"
-                }`}
-            >
-              {tab}
-            </button>
-          ))}
+        <div className="flex items-center gap-2">
+          <a
+            href={`/admin/orders/${payment.id}`} // Assuming order ID matches or is reachable
+            className="flex items-center gap-2 px-4 py-2 bg-black text-white rounded-xl text-xs font-bold hover:bg-zinc-800 transition-all shadow-md"
+          >
+            View Order <ExternalLink size={14} />
+          </a>
         </div>
+      </div>
 
-        <div className="flex-1 overflow-y-auto p-8 space-y-8 no-scrollbar">
-          {activeTab === "summary" && (
-            <div className="space-y-8 animate-in fade-in duration-300">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <DetailBox label="Order Total" value={`AED ${payment.amount.toLocaleString("en-IN")}`} icon={<Receipt size={14} />} />
-                <DetailBox label="Payment Method" value={payment.paymentMethod} icon={<Wallet size={14} />} />
-                <DetailBox label="Order" value={payment.orderNumber} icon={<Landmark size={14} />} />
-                <DetailBox label="Customer" value={`${payment.customerName}`} icon={<User size={14} />} />
-              </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left Column: Key Info */}
+        <div className="lg:col-span-2 space-y-6">
+          <div className="bg-white border border-zinc-100 rounded-2xl p-6 shadow-sm space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <DetailBox label="Amount" value={`AED ${payment.amount.toLocaleString("en-IN")}`} icon={<Receipt size={14} />} />
+              <DetailBox label="Payment Method" value={payment.paymentMethod} icon={<Wallet size={14} />} />
+              <DetailBox label="Transaction ID" value={payment.transactionId || "N/A"} icon={<Landmark size={14} />} />
+              <DetailBox label="Ziina Intent" value={payment.ziinaPaymentIntentId || "N/A"} icon={<CreditCard size={14} />} />
+            </div>
 
-              <div className="space-y-4">
-                <h4 className="text-[10px] font-bold uppercase text-[#A1A1AA] tracking-widest">Settlement Breakdown</h4>
-                <div className="p-4 bg-[#F9F9F9] rounded-xl space-y-3 border border-[#EEEEEE]">
-                  <div className="flex justify-between text-xs">
-                    <span className="text-[#71717A]">Base Amount</span>
-                    <span className="font-bold font-mono">AED {(payment.amount * 0.9524).toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between text-xs">
-                    <span className="text-[#71717A]">Gateway Fee (~2%)</span>
-                    <span className="font-bold font-mono">AED {(payment.amount * 0.02).toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between text-xs border-t pt-3 border-gray-200">
-                    <span className="text-[#71717A]">Net Settlement</span>
-                    <span className="font-bold font-mono text-emerald-600">AED {(payment.amount * 0.98).toFixed(2)}</span>
-                  </div>
+            <div className="pt-6 border-t border-zinc-100">
+              <h4 className="text-[10px] font-bold uppercase text-zinc-400 tracking-widest mb-4">Customer Details</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                <div>
+                  <p className="text-[9px] font-bold text-zinc-400 uppercase">Name</p>
+                  <p className="text-sm font-bold mt-1">{payment.customerName}</p>
+                </div>
+                <div>
+                  <p className="text-[9px] font-bold text-zinc-400 uppercase">Email</p>
+                  <p className="text-sm font-bold mt-1">{payment.customerEmail}</p>
+                </div>
+                <div>
+                  <p className="text-[9px] font-bold text-zinc-400 uppercase">Phone</p>
+                  <p className="text-sm font-bold mt-1">{payment.customerPhone}</p>
                 </div>
               </div>
             </div>
-          )}
+          </div>
 
-          {activeTab === "timeline" && (
-            <div className="space-y-6 animate-in fade-in duration-300">
-              <TimelineItem time={new Date(payment.date).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", second: "2-digit" })} title="Payment Captured" desc="Successfully processed" status="success" />
-              <TimelineItem time="—" title="Payment Authorized" desc="User completed verification" status="success" />
-              <TimelineItem time="—" title="Payment Created" desc="Transaction initiated from Checkout" status="success" />
-            </div>
-          )}
-
-          {activeTab === "refund" && (
-            <div className="space-y-6 animate-in fade-in duration-300">
-              <div className="bg-rose-50 border border-rose-100 p-4 rounded-xl flex items-start gap-3 shadow-sm">
-                <AlertCircle size={18} className="text-rose-600 shrink-0" />
-                <p className="text-xs text-rose-800 leading-relaxed font-medium">
-                  Refunds typically take 5-7 business days to reflect in the customer's bank account after initiation.
-                </p>
+          {/* Refund Section */}
+          {payment.paymentStatus === "Success" && (
+            <div className="bg-rose-50/50 border border-rose-100 rounded-2xl p-6 shadow-sm space-y-4">
+              <div className="flex items-center gap-2 text-rose-600">
+                <Undo2 size={18} />
+                <h3 className="text-sm font-bold uppercase tracking-widest">Process Refund</h3>
               </div>
-              <div className="space-y-4">
-                <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-bold uppercase text-[#A1A1AA]">Refund Amount</label>
-                  <input type="text" placeholder={`Max AED ${payment.amount.toLocaleString("en-IN")}`} className="w-full p-3 border rounded-xl text-sm font-bold focus:ring-1 focus:ring-black outline-none transition-all shadow-sm" />
+              <p className="text-xs text-rose-700 leading-relaxed">
+                Refunds are processed through the payment gateway. Partial refunds are supported by specifying an amount below.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="relative flex-1">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-zinc-400">AED</span>
+                  <input
+                    type="number"
+                    value={refundAmount}
+                    onChange={(e) => setRefundAmount(e.target.value)}
+                    placeholder={`Full amount: ${payment.amount}`}
+                    className="w-full pl-12 pr-4 py-3 bg-white border border-rose-200 rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-rose-500/20"
+                  />
                 </div>
-                <button className="w-full py-4 bg-rose-600 text-white rounded-xl text-xs font-bold hover:bg-rose-700 transition-all flex items-center justify-center gap-2 shadow-lg shadow-rose-100">
-                  <RefreshCcw size={14} /> Initiate Refund
+                <button
+                  onClick={handleRefund}
+                  disabled={actionLoading}
+                  className="px-8 py-3 bg-rose-600 text-white rounded-xl text-xs font-bold hover:bg-rose-700 transition-all shadow-lg shadow-rose-200 disabled:opacity-50"
+                >
+                  {actionLoading ? "Processing..." : "Initiate Refund"}
                 </button>
               </div>
             </div>
           )}
-        </div>
 
-        {/* Footer */}
-        <div className="p-6 border-t bg-[#FAFAFA] flex gap-3">
-          <button className="flex-1 py-3 bg-white border border-[#EEEEEE] rounded-xl text-xs font-bold hover:bg-gray-50 flex items-center justify-center gap-2 transition-all shadow-sm">
-            <Download size={14} /> Receipt
-          </button>
-          <button className="flex-1 py-3 bg-black text-white rounded-xl text-xs font-bold hover:bg-[#222] flex items-center justify-center gap-2 transition-all shadow-md">
-            View Order
-          </button>
-        </div>
-      </div>
-    </>
-  );
-};
-
-/* ── SUB-VIEWS ── */
-export const CODView = ({
-  payments,
-  totalCount,
-  page,
-  limit,
-  onPageChange,
-  onLimitChange,
-}: {
-  payments: Payment[];
-  totalCount: number;
-  page: number;
-  limit: number;
-  onPageChange: (p: number) => void;
-  onLimitChange: (limit: number) => void;
-}) => {
-  const dispatch = useDispatch();
-  const totalPages = Math.max(1, Math.ceil(totalCount / limit));
-  const visibleStart = totalCount === 0 ? 0 : (page - 1) * limit + 1;
-  const visibleEnd = totalCount === 0 ? 0 : Math.min((page - 1) * limit + payments.length, totalCount);
-
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [selectedStatus, setSelectedStatus] = useState<string>("");
-
-  const codStatuses = [
-    { value: "PENDING", label: "Pending" },
-    { value: "SUCCESS", label: "Collected" },
-    { value: "FAILED", label: "Failed" },
-  ];
-
-  const handleStatusSave = (paymentId: number) => {
-    if (!selectedStatus) return;
-    dispatch(paymentsActions.updatePaymentStatusRequest({ id: paymentId, status: selectedStatus }));
-    setEditingId(null);
-    setSelectedStatus("");
-  };
-
-  return (
-    <div className="animate-in fade-in">
-      <table className="w-full text-left">
-        <thead className="bg-[#FAFAFA] border-b border-[#EEEEEE]">
-          <tr className="text-[10px] font-bold text-[#A1A1AA] uppercase tracking-widest">
-            <th className="px-6 py-4">Order</th>
-            <th className="px-6 py-4">Customer</th>
-            <th className="px-6 py-4">Amount</th>
-            <th className="px-6 py-4">Status</th>
-            <th className="px-6 py-4 text-right">Action</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-[#EEEEEE]">
-          {payments.length > 0 ? (
-            payments.map((p) => (
-              <tr key={p.id} className="text-sm group hover:bg-[#FAFAFA] transition-colors">
-                <td className="px-6 py-4 font-mono text-xs font-bold">{p.orderNumber}</td>
-                <td className="px-6 py-4 text-xs">{p.customerName}</td>
-                <td className="px-6 py-4 font-mono font-bold">AED {p.amount.toLocaleString("en-IN")}</td>
-                <td className="px-6 py-4"><PaymentStatusBadge status={p.paymentStatus} /></td>
-                <td className="px-6 py-4 text-right">
-                  {editingId === p.id ? (
-                    <div className="flex items-center justify-end gap-2">
-                      <select
-                        value={selectedStatus}
-                        onChange={(e) => setSelectedStatus(e.target.value)}
-                        className="px-2 py-1.5 bg-[#F9F9F9] border border-[#EEEEEE] rounded-lg text-[11px] font-medium outline-none focus:border-[#D4D4D8]"
-                      >
-                        <option value="">Select status</option>
-                        {codStatuses.map((s) => (
-                          <option key={s.value} value={s.value}>{s.label}</option>
-                        ))}
-                      </select>
-                      <button
-                        onClick={() => handleStatusSave(p.id)}
-                        disabled={!selectedStatus}
-                        className="px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-[10px] font-bold shadow-sm hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                      >
-                        Save
-                      </button>
-                      <button
-                        onClick={() => { setEditingId(null); setSelectedStatus(""); }}
-                        className="px-3 py-1.5 bg-[#F4F4F5] text-[#71717A] rounded-lg text-[10px] font-bold hover:bg-[#E4E4E7] transition-colors"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => { setEditingId(p.id); setSelectedStatus(""); }}
-                      className="px-4 py-1.5 bg-black text-white rounded-lg text-[10px] font-bold shadow-sm hover:bg-[#333] transition-colors"
-                    >
-                      Update Status
-                    </button>
-                  )}
-                </td>
-              </tr>
-            ))
-          ) : (
-            <tr>
-              <td colSpan={5} className="px-6 py-12 text-center text-xs text-[#A1A1AA]">No COD orders found</td>
-            </tr>
+          {/* Refund Status */}
+          {refundStatus && (
+            <div className="bg-white border border-zinc-100 rounded-2xl p-6 shadow-sm space-y-4">
+              <h4 className="text-[10px] font-bold uppercase text-zinc-400 tracking-widest">Refund Status</h4>
+              <div className="p-4 bg-zinc-50 rounded-xl space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-zinc-500 font-medium">Refund ID</span>
+                  <span className="text-xs font-bold font-mono">{refundStatus.refund_id}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-zinc-500 font-medium">Status</span>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${refundStatus.status === 'completed' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                    {refundStatus.status}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-zinc-500 font-medium">Amount</span>
+                  <span className="text-xs font-bold">AED {(refundStatus.amount / 100).toFixed(2)}</span>
+                </div>
+                {refundStatus.processed_at && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-zinc-500 font-medium">Processed At</span>
+                    <span className="text-xs font-bold">{new Date(refundStatus.processed_at).toLocaleString()}</span>
+                  </div>
+                )}
+              </div>
+            </div>
           )}
-        </tbody>
-      </table>
-
-      {/* Pagination */}
-      <div className="p-4 border-t border-[#EEEEEE] flex flex-col sm:flex-row items-center justify-between gap-3 bg-white">
-        <div className="flex items-center gap-4">
-          <div className="text-[11px] text-[#A1A1AA] font-medium">
-            Showing {visibleStart}-{visibleEnd} of {totalCount} COD orders
-          </div>
-          <select
-            value={limit}
-            onChange={(e) => onLimitChange(Number(e.target.value))}
-            className="p-1.5 bg-[#F9F9F9] border border-[#EEEEEE] rounded-lg text-xs outline-none focus:border-[#D4D4D8]"
-          >
-            <option value={5}>5 / page</option>
-            <option value={10}>10 / page</option>
-            <option value={20}>20 / page</option>
-            <option value={50}>50 / page</option>
-          </select>
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => onPageChange(Math.max(1, page - 1))}
-            disabled={page === 1}
-            className="p-2 border border-[#EEEEEE] rounded-lg hover:bg-[#FAFAFA] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            <ChevronLeft size={14} />
-          </button>
-          <span className="text-xs font-bold px-2">Page {page} of {totalPages}</span>
-          <button
-            onClick={() => onPageChange(Math.min(totalPages, page + 1))}
-            disabled={page >= totalPages}
-            className="p-2 border border-[#EEEEEE] rounded-lg hover:bg-[#FAFAFA] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            <ChevronRight size={14} />
-          </button>
+
+        {/* Right Column: JSON Response (Provider Data) */}
+        <div className="space-y-6">
+          <div className="bg-zinc-900 rounded-2xl p-6 shadow-xl overflow-hidden h-full min-h-[400px] flex flex-col">
+            <h4 className="text-[10px] font-bold uppercase text-zinc-500 tracking-widest mb-4">Provider Response</h4>
+            <div className="flex-1 overflow-auto no-scrollbar font-mono text-[11px] text-emerald-400/90 leading-relaxed">
+              <pre className="whitespace-pre-wrap">
+                {JSON.stringify(payment.providerResponse, null, 2)}
+              </pre>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   );
 };
-
-export const RefundsView = ({
-  payments,
-  totalCount,
-  page,
-  limit,
-  onPageChange,
-  onLimitChange,
-}: {
-  payments: Payment[];
-  totalCount: number;
-  page: number;
-  limit: number;
-  onPageChange: (p: number) => void;
-  onLimitChange: (limit: number) => void;
-}) => {
-  const totalPages = Math.max(1, Math.ceil(totalCount / limit));
-  const visibleStart = totalCount === 0 ? 0 : (page - 1) * limit + 1;
-  const visibleEnd = totalCount === 0 ? 0 : Math.min((page - 1) * limit + payments.length, totalCount);
-
-  return (
-    <div className="animate-in fade-in">
-      <table className="w-full text-left">
-        <thead className="bg-[#FAFAFA] border-b border-[#EEEEEE]">
-          <tr className="text-[10px] font-bold text-[#A1A1AA] uppercase tracking-widest">
-            <th className="px-6 py-4">Payment ID</th>
-            <th className="px-6 py-4">Order</th>
-            <th className="px-6 py-4">Amount</th>
-            <th className="px-6 py-4">Status</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-[#EEEEEE]">
-          {payments.length > 0 ? (
-            payments.map((p) => (
-              <tr key={p.id} className="text-sm group hover:bg-[#FAFAFA] transition-colors">
-                <td className="px-6 py-4 font-mono text-xs font-bold">{p.paymentId}</td>
-                <td className="px-6 py-4 font-mono text-xs text-blue-600 font-bold">{p.orderNumber}</td>
-                <td className="px-6 py-4 font-bold text-rose-600">AED {p.amount.toLocaleString("en-IN")}</td>
-                <td className="px-6 py-4"><PaymentStatusBadge status={p.paymentStatus} /></td>
-              </tr>
-            ))
-          ) : (
-            <tr>
-              <td colSpan={4} className="px-6 py-12 text-center text-xs text-[#A1A1AA]">No refunds found</td>
-            </tr>
-          )}
-        </tbody>
-      </table>
-
-      {/* Pagination */}
-      <div className="p-4 border-t border-[#EEEEEE] flex flex-col sm:flex-row items-center justify-between gap-3 bg-white">
-        <div className="flex items-center gap-4">
-          <div className="text-[11px] text-[#A1A1AA] font-medium">
-            Showing {visibleStart}-{visibleEnd} of {totalCount} refunds
-          </div>
-          <select
-            value={limit}
-            onChange={(e) => onLimitChange(Number(e.target.value))}
-            className="p-1.5 bg-[#F9F9F9] border border-[#EEEEEE] rounded-lg text-xs outline-none focus:border-[#D4D4D8]"
-          >
-            <option value={5}>5 / page</option>
-            <option value={10}>10 / page</option>
-            <option value={20}>20 / page</option>
-            <option value={50}>50 / page</option>
-          </select>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => onPageChange(Math.max(1, page - 1))}
-            disabled={page === 1}
-            className="p-2 border border-[#EEEEEE] rounded-lg hover:bg-[#FAFAFA] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            <ChevronLeft size={14} />
-          </button>
-          <span className="text-xs font-bold px-2">Page {page} of {totalPages}</span>
-          <button
-            onClick={() => onPageChange(Math.min(totalPages, page + 1))}
-            disabled={page >= totalPages}
-            className="p-2 border border-[#EEEEEE] rounded-lg hover:bg-[#FAFAFA] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            <ChevronRight size={14} />
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export const SettlementsView = ({ totalCollected }: { totalCollected: number }) => (
-  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 animate-in fade-in">
-    <div className="p-6 bg-white border border-[#EEEEEE] rounded-2xl shadow-sm">
-      <p className="text-[10px] font-bold text-[#A1A1AA] uppercase tracking-widest">Next Payout</p>
-      <h4 className="text-2xl font-bold mt-1">AED {(totalCollected * 0.3).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</h4>
-      <p className="text-[10px] text-[#A1A1AA] mt-2">Scheduled estimate</p>
-    </div>
-    <div className="p-6 bg-white border border-[#EEEEEE] rounded-2xl shadow-sm">
-      <p className="text-[10px] font-bold text-[#A1A1AA] uppercase tracking-widest">Last Settlement</p>
-      <h4 className="text-2xl font-bold mt-1">AED {(totalCollected * 0.7).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</h4>
-      <p className="text-[10px] text-emerald-600 font-bold mt-2 flex items-center gap-1"><CheckCircle2 size={10} /> Processed</p>
-    </div>
-    <div className="p-6 bg-white border border-[#EEEEEE] rounded-2xl shadow-sm">
-      <p className="text-[10px] font-bold text-[#A1A1AA] uppercase tracking-widest">Total Settled</p>
-      <h4 className="text-2xl font-bold mt-1">AED {totalCollected.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</h4>
-      <p className="text-[10px] text-[#A1A1AA] mt-2">All time</p>
-    </div>
-  </div>
-);
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export const DisputesView = () => (
-  <div className="bg-white p-12 border border-[#EEEEEE] rounded-2xl shadow-sm text-center space-y-4 animate-in fade-in">
-    <div className="w-20 h-20 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto shadow-inner">
-      <ShieldCheck size={40} />
-    </div>
-    <h3 className="text-xl font-bold">All clear!</h3>
-    <p className="text-sm text-[#71717A] max-w-xs mx-auto">
-      There are no open customer disputes or chargebacks at this moment.
-    </p>
-  </div>
-);
 
 /* ── HELPER COMPONENTS ── */
 const NavTab = ({ id, active, label, icon, onClick }: any) => (
@@ -1249,33 +918,6 @@ const NavTab = ({ id, active, label, icon, onClick }: any) => (
   >
     {icon} {label}
   </button>
-);
-
-const StatCard = ({ label, value, trend, trendType, sub }: any) => (
-  <div className="bg-white border border-[#EEEEEE] rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow">
-    <p className="text-[10px] font-bold uppercase text-[#A1A1AA] tracking-widest">{label}</p>
-    <div className="flex items-baseline gap-2 mt-1">
-      <h3 className="text-2xl font-bold">{value}</h3>
-      {trend && (
-        <span className={`text-[10px] font-bold flex items-center gap-0.5 ${trendType === "up" ? "text-emerald-600" : "text-rose-600"}`}>
-          {trendType === "up" ? <ArrowUpRight size={10} /> : <ArrowDownRight size={10} />} {trend}
-        </span>
-      )}
-    </div>
-    <p className="text-[10px] text-[#A1A1AA] mt-1 font-medium">{sub}</p>
-  </div>
-);
-
-const MethodBar = ({ label, percentage, color }: { label: string; percentage: number; color: string }) => (
-  <div className="space-y-1">
-    <div className="flex justify-between text-[10px] font-bold">
-      <span>{label}</span>
-      <span className="text-[#71717A]">{percentage}%</span>
-    </div>
-    <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden shadow-inner">
-      <div className={`h-full ${color} transition-all duration-1000`} style={{ width: `${percentage}%` }} />
-    </div>
-  </div>
 );
 
 function methodColor(method: string): string {

@@ -66,6 +66,17 @@ function mapProductDtoToProduct(dto: ProductDto): Product {
                 deliveryDays: t.delivery_days || 0,
             }))
             : [],
+        preparation_specifications: Array.isArray(dto.preparation_specifications)
+            ? dto.preparation_specifications.map((s) => ({
+                id: s.id,
+                name: s.name,
+                description: s.description,
+                image: s.image,
+                extra_price: s.extra_price,
+                sort_order: s.sort_order,
+                is_active: s.is_active,
+            }))
+            : [],
         createdAt: dto.created_at,
         updatedAt: dto.updated_at,
     };
@@ -138,7 +149,7 @@ function* createProductWorker(
     action: ReturnType<typeof productsActions.createProductRequest>
 ): SagaIterator {
     try {
-        const { formData, images, videos, deliveryTiers, discountTiers } = action.payload;
+        const { formData, images, videos, deliveryTiers, discountTiers, preparationSpecs } = action.payload;
 
         // 1. Create main product
         const dto: ProductDto = yield call(productsApi.create, formData);
@@ -196,7 +207,30 @@ function* createProductWorker(
             }
         }
 
-        // 6. Fetch final product details to get all nested objects populated
+        // 6. Save preparation specifications
+        if (Array.isArray(preparationSpecs) && preparationSpecs.length > 0) {
+            for (const spec of preparationSpecs) {
+                const payload = {
+                    name: spec.name,
+                    description: spec.description || "",
+                    extra_price: spec.extra_price || "0.00",
+                    sort_order: spec.sort_order || 1,
+                    is_active: spec.is_active ?? true,
+                } as any;
+                
+                let dataToSubmit: any = payload;
+                if (spec.image instanceof File) {
+                    const fd = new FormData();
+                    Object.keys(payload).forEach(k => fd.append(k, payload[k]));
+                    fd.append('image', spec.image);
+                    dataToSubmit = fd;
+                }
+
+                yield call(productsApi.createPreparationSpec, productId, dataToSubmit);
+            }
+        }
+
+        // 7. Fetch final product details to get all nested objects populated
         const finalDto: ProductDto = yield call(productsApi.details, productId);
         const product = mapProductDtoToProduct(finalDto);
 

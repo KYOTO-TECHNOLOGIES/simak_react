@@ -22,6 +22,19 @@ export interface Payment {
     orderStatus: string;
     date: string;
     updatedAt: string;
+    transactionId?: string;
+    ziinaPaymentIntentId?: string;
+    providerResponse?: Record<string, any>;
+}
+
+export interface RefundStatus {
+    refund_id: string;
+    status: string;
+    amount: number;
+    currency: string;
+    created_at: string;
+    processed_at: string | null;
+    reason: string | null;
 }
 
 interface PaymentsState {
@@ -31,7 +44,10 @@ interface PaymentsState {
     status: Status;
     error: string | null;
     selectedId: number | null;
+    detailedPayment: Payment | null;
+    refundStatus: RefundStatus | null;
     lastQuery: PaymentsQuery | null;
+    actionLoading: boolean;
 }
 
 const initialState: PaymentsState = {
@@ -41,7 +57,10 @@ const initialState: PaymentsState = {
     status: "idle",
     error: null,
     selectedId: null,
+    detailedPayment: null,
+    refundStatus: null,
     lastQuery: null,
+    actionLoading: false,
 };
 
 const paymentsSlice = createSlice({
@@ -99,6 +118,49 @@ const paymentsSlice = createSlice({
             state.status = "failed";
             state.error = action.payload;
         },
+
+        /* ── Fetch Single Payment ── */
+        fetchPaymentDetailsRequest: (state, _action: PayloadAction<number>) => {
+            state.status = "loading";
+            state.error = null;
+        },
+        fetchPaymentDetailsSuccess: (state, action: PayloadAction<Payment>) => {
+            state.status = "succeeded";
+            state.detailedPayment = action.payload;
+        },
+        fetchPaymentDetailsFailure: (state, action: PayloadAction<string>) => {
+            state.status = "failed";
+            state.error = action.payload;
+        },
+
+        /* ── Refund Actions ── */
+        createRefundRequest: (state, _action: PayloadAction<{ paymentId: number; amount_fils?: number }>) => {
+            state.actionLoading = true;
+            state.error = null;
+        },
+        createRefundSuccess: (state) => {
+            state.actionLoading = false;
+        },
+        createRefundFailure: (state, action: PayloadAction<string>) => {
+            state.actionLoading = false;
+            state.error = action.payload;
+        },
+
+        fetchRefundStatusRequest: (state, _action: PayloadAction<number>) => {
+            state.actionLoading = true;
+            state.error = null;
+        },
+        fetchRefundStatusSuccess: (state, action: PayloadAction<RefundStatus>) => {
+            state.actionLoading = false;
+            state.refundStatus = action.payload;
+        },
+        fetchRefundStatusFailure: (state, action: PayloadAction<string>) => {
+            state.actionLoading = false;
+            state.error = action.payload;
+        },
+        clearRefundStatus: (state) => {
+            state.refundStatus = null;
+        },
     },
 });
 
@@ -112,3 +174,6 @@ export const selectPaymentsPage = (s: RootState) => s.payments.currentPage;
 export const selectPaymentsStatus = (s: RootState) => s.payments.status;
 export const selectPaymentsError = (s: RootState) => s.payments.error;
 export const selectSelectedPaymentId = (s: RootState) => s.payments.selectedId;
+export const selectDetailedPayment = (s: RootState) => s.payments.detailedPayment;
+export const selectRefundStatus = (s: RootState) => s.payments.refundStatus;
+export const selectActionLoading = (s: RootState) => s.payments.actionLoading;

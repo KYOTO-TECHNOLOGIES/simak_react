@@ -11,6 +11,7 @@ import { useToast } from "../ui/Toast";
 import { processRestockAlerts } from "../../utils/restockAlerts";
 import logo from "../../assets/LOGO-1.svg";
 import InfiniteScrollTrack from "../ui/InfiniteScrollTrack";
+import PreparationSpecModal from "../userside/PreparationSpecModal";
 
 /* ── Product Card ── */
 const ProductCard: React.FC<{
@@ -208,6 +209,10 @@ const BestsellersSection: React.FC = () => {
   const requireAuth = useRequireAuth();
   const authUserId = useAppSelector((state) => state.auth.user?.id);
 
+  // Preparation Spec Modal State
+  const [selectedProductForSpec, setSelectedProductForSpec] = useState<ProductDto | null>(null);
+  const [specModalMode, setSpecModalMode] = useState<"cart" | "checkout">("cart");
+
   const getProductImage = (p: ProductDto) => {
     if (p.image) return p.image;
     const featured = p.images?.find((img) => img.is_feature);
@@ -243,6 +248,12 @@ const BestsellersSection: React.FC = () => {
   }, [authUserId, products, t, toast]);
 
   const handleAddToCart = (product: ProductDto) => {
+    if (product.preparation_specifications && product.preparation_specifications.length > 0) {
+      setSelectedProductForSpec(product);
+      setSpecModalMode("cart");
+      return;
+    }
+
     requireAuth(async () => {
       try {
         const result = await cartsApi.addItem(product.id, 1);
@@ -260,6 +271,12 @@ const BestsellersSection: React.FC = () => {
   };
 
   const handleDirectBuy = (product: ProductDto) => {
+    if (product.preparation_specifications && product.preparation_specifications.length > 0) {
+      setSelectedProductForSpec(product);
+      setSpecModalMode("checkout");
+      return;
+    }
+
     requireAuth(async () => {
       try {
         const result = await cartsApi.addItem(product.id, 1);
@@ -275,6 +292,35 @@ const BestsellersSection: React.FC = () => {
         toast.show(msg, "error");
       }
     })();
+  };
+
+  const handleConfirmSpecSelection = async (preparationId: number, instructions: string) => {
+    if (!selectedProductForSpec) return;
+
+    try {
+      const result = await cartsApi.addItem(
+        selectedProductForSpec.id,
+        1,
+        preparationId,
+        instructions || undefined
+      );
+
+      if (result?.error) {
+        toast.show(result.error, "error");
+        return;
+      }
+
+      dispatch(fetchCartRequest());
+      toast.show(t("bestsellers.addedToCart", { name: selectedProductForSpec.name, defaultValue: `${selectedProductForSpec.name} added to cart` }), "cart");
+
+      if (specModalMode === "checkout") {
+        navigate("/cart");
+      }
+    } catch (err: any) {
+      const msg = err?.response?.data?.error || "Failed to add item to cart";
+      toast.show(msg, "error");
+      throw err;
+    }
   };
 
   const handleNotifyMe = (product: ProductDto) => {
@@ -381,6 +427,14 @@ const BestsellersSection: React.FC = () => {
           </div>
         )}
       </div>
+
+      <PreparationSpecModal
+        product={selectedProductForSpec}
+        isOpen={!!selectedProductForSpec}
+        onClose={() => setSelectedProductForSpec(null)}
+        onConfirm={handleConfirmSpecSelection}
+        mode={specModalMode}
+      />
     </section>
   );
 };

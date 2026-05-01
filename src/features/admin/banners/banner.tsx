@@ -72,6 +72,19 @@ const BannersManagement: React.FC = () => {
         setMobilePreview(null);
     };
 
+    const formatDateTimeLocal = (dateStr?: string | null) => {
+        if (!dateStr) return "";
+        try {
+            const d = new Date(dateStr);
+            if (isNaN(d.getTime())) return "";
+            // Format to YYYY-MM-DDTHH:mm
+            const pad = (n: number) => n.toString().padStart(2, '0');
+            return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        } catch {
+            return "";
+        }
+    };
+
     const handleOpenModal = (banner?: any) => {
         if (banner) {
             setEditingBanner(banner);
@@ -86,8 +99,8 @@ const BannersManagement: React.FC = () => {
                 is_active: banner.is_active,
                 position: banner.position === "home_hero" ? "home_banner" : (banner.position || "home_banner"),
                 sort_order: banner.order || 0,
-                start_at: banner.start_at || "",
-                end_at: banner.end_at || "",
+                start_at: formatDateTimeLocal(banner.start_at),
+                end_at: formatDateTimeLocal(banner.end_at),
             });
             setDesktopPreview(banner.desktop_image);
             setMobilePreview(banner.mobile_image);

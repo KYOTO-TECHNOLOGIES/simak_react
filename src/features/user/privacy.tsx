@@ -6,6 +6,7 @@ const PrivacyPolicyPage: React.FC = () => {
     "contact information including email address",
     "demographic information such as postcode, preferences and interests",
     "other information relevant to customer surveys and/or offers.",
+    "live location data (to know your location when you shop online), if the user chooses to share it"
   ];
 
   const usageItems = [

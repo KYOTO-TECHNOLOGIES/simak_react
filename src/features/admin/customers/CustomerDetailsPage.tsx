@@ -4,6 +4,7 @@ import { ChevronLeft, Shield, ShieldAlert, UserCheck, Ban, Undo2, MapPin, User, 
 import { useDispatch } from "react-redux";
 import { customersApi, type Customer, type UserDto } from "./customersApi";
 import { customersActions } from "./customersSlice";
+import { normalizeMediaUrl } from "../../../utils/media";
 
 function mapUserDtoToCustomer(dto: UserDto): Customer {
   const firstName = dto.first_name || "";
@@ -28,7 +29,7 @@ function mapUserDtoToCustomer(dto: UserDto): Customer {
     isEmailVerified: dto.is_email_verified,
     isPhoneVerified: dto.is_phone_verified,
     googleLinked: !!dto.google_id,
-    profilePicture: dto.profile?.profile_picture ?? null,
+    profilePicture: normalizeMediaUrl(dto.profile?.profile_picture),
     dateOfBirth: dto.profile?.date_of_birth ?? null,
     gender: dto.profile?.gender ?? null,
     preferredLanguage: dto.profile?.preferred_language ?? "en",

@@ -6,6 +6,7 @@ import type { ProductDto, CategoryDto } from "./productApi";
 import { productsApi } from "./productApi";
 import DeliveryTiersManager from "./DeliveryTiersManager";
 import DiscountTiersManager from "./DiscountTiersManager";
+import PreparationSpecsManager from "./PreparationSpecsManager";
 import ProductLocationsField from "./ProductLocationsField";
 import { extractProductLocationValues } from "./productLocationOptions";
 import MediaLightbox, { type MediaItem } from "./MediaLightbox";
@@ -376,6 +377,10 @@ const EditProductForm: React.FC<EditProductFormProps> = ({ dto, productId }) => 
                         productId={productId}
                     />
                 </div>
+
+                <PreparationSpecsManager
+                    productId={productId}
+                />
 
                 {/* Organization */}
                 <section className="bg-white border border-[#EEEEEE] rounded-2xl p-6 shadow-sm space-y-6">

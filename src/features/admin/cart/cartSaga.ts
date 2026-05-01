@@ -134,6 +134,11 @@ function mapApiItemToCartItem(dto: CartItemDto): CartItem {
         price,
         discountPrice,
         finalPrice,
+        baseUnitPrice: parseFloat(dto.base_unit_price ?? "0") || price,
+        preparationExtraPrice: parseFloat(dto.preparation_extra_price ?? "0") || 0,
+        preparationSpecification: dto.preparation_specification,
+        preparationSpecificationDetails: dto.preparation_specification_details,
+        preparationInstructions: dto.preparation_instructions,
         image,
         quantity: dto.quantity,
         stock: pd?.stock ?? 999,
@@ -192,7 +197,13 @@ function* addToCartWorker(action: ReturnType<typeof addToCart>): SagaIterator {
         );
         if (!isAuthenticated) return;
 
-        yield call(cartsApi.addItem, action.payload.id, action.payload.quantity);
+        yield call(
+            cartsApi.addItem, 
+            action.payload.id, 
+            action.payload.quantity, 
+            action.payload.preparationSpecification || undefined,
+            action.payload.preparationInstructions || undefined
+        );
         // Refresh cart to ensure total price and item details are correct
         yield put(fetchCartRequest());
     } catch (e: any) {
@@ -217,7 +228,7 @@ function* removeFromCartWorker(action: ReturnType<typeof removeFromCart>): SagaI
 
 /* ── Update cart item quantity — spinner shown immediately, API called after short debounce ── */
 function* updateQuantityWorker(action: ReturnType<typeof updateQuantity>): SagaIterator {
-    const { id, quantity } = action.payload;
+    const { cartItemId, quantity } = action.payload;
     yield delay(400);
     try {
         const isAuthenticated: boolean = yield select(
@@ -225,12 +236,12 @@ function* updateQuantityWorker(action: ReturnType<typeof updateQuantity>): SagaI
         );
         if (!isAuthenticated) return;
 
-        yield call(cartsApi.updateQuantity, id, quantity);
-        yield put(updateQuantitySuccess({ id, quantity }));
+        yield call(cartsApi.updateQuantity, cartItemId, quantity);
+        yield put(updateQuantitySuccess({ cartItemId, quantity }));
     } catch (e: any) {
         console.error("[Cart Update] Error:", e);
         const msg = e?.response?.data?.detail || e?.message || "Failed to update quantity";
-        yield put(updateQuantityFailure({ id, error: msg }));
+        yield put(updateQuantityFailure({ cartItemId, error: msg }));
     }
 }
 

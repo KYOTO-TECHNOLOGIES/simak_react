@@ -830,7 +830,7 @@ const CheckoutPage: React.FC = () => {
       dispatch(clearCart());
       navigate(`/payment/success?order_id=${res.order_id}`);
     } catch (error: any) {
-      const msg = error?.response?.data?.error || t("alerts.placeOrderFailed");
+      const msg = getApiErrorMessage(error, t("alerts.placeOrderFailed"));
       toast.show(msg, "error");
     } finally {
       setSubmitting(false);

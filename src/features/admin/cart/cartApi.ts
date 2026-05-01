@@ -34,6 +34,19 @@ export interface CartItemDto {
     product: number;
     product_details: CartProductDetailsDto;
     quantity: number;
+    base_unit_price?: string;
+    preparation_specification?: number | null;
+    preparation_specification_details?: {
+        id: number;
+        name: string;
+        description: string;
+        image: string | null;
+        extra_price: string;
+        sort_order: number;
+    } | null;
+    preparation_instructions?: string | null;
+    preparation_extra_price?: string;
+    unit_price?: string;
     subtotal: string;
     created_at: string;
     updated_at: string;
@@ -85,20 +98,32 @@ export const cartsApi = {
     },
 
     /** POST /cart/add_item/ — add an item to cart */
-    addItem: async (productId: number, quantity: number = 1): Promise<any> => {
-        const res = await api.post("/cart/add_item/", { product: productId, quantity });
+    addItem: async (
+        productId: number, 
+        quantity: number = 1, 
+        preparation_specification?: number, 
+        preparation_instructions?: string
+    ): Promise<any> => {
+        const payload: any = { product: productId, quantity };
+        if (preparation_specification !== undefined) {
+            payload.preparation_specification = preparation_specification;
+        }
+        if (preparation_instructions !== undefined) {
+            payload.preparation_instructions = preparation_instructions;
+        }
+        const res = await api.post("/cart/add_item/", payload);
         return res.data;
     },
 
     /** POST /cart/update_item_quantity/ — update cart item quantity */
-    updateQuantity: async (productId: number, quantity: number): Promise<any> => {
-        const res = await api.post("/cart/update_item_quantity/", { product: productId, quantity });
+    updateQuantity: async (cartItemId: number, quantity: number): Promise<any> => {
+        const res = await api.post("/cart/update_item_quantity/", { cart_item_id: cartItemId, quantity });
         return res.data;
     },
 
     /** POST /cart/remove_item/ — remove an item from cart */
-    removeItem: async (productId: number): Promise<void> => {
-        await api.post("/cart/remove_item/", { product: productId });
+    removeItem: async (cartItemId: number): Promise<void> => {
+        await api.post("/cart/remove_item/", { cart_item_id: cartItemId });
     },
 
     /** POST /cart/clear/ — clear the entire cart */

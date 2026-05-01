@@ -182,6 +182,7 @@ export const AppRoutes: React.FC = () => {
             <Route path="categories" element={<CategoriesPage />} />
             <Route path="reviews" element={<ReviewsManagement />} />
             <Route path="payments" element={<PaymentManagement />} />
+            <Route path="payments/:id" element={<PaymentManagement />} />
             <Route path="marketing/coupons" element={<CouponManagement />} />
             <Route path="banners" element={<BannersManagement />} />
             <Route path="notifications" element={<AdminNotificationsPage />} />

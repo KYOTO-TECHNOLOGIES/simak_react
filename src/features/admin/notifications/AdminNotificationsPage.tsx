@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import {
     Plus, Trash2, Edit2, Save, X, Loader2, Send, FileText, Radio,
-    Mail, Users, Globe
+    Mail, Users, Globe, Image, Camera
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -11,6 +11,7 @@ import {
     type BroadcastDto,
     type BroadcastPayload,
 } from "./adminNotificationApi";
+import { normalizeMediaUrl } from "../../../utils/media";
 
 type Tab = "templates" | "broadcasts";
 
@@ -215,8 +216,10 @@ const BroadcastsSection: React.FC = () => {
     const [sending, setSending] = useState<number | null>(null);
     const [form, setForm] = useState<BroadcastPayload>({
         template: null, subject: "", message: "", type: "IN_APP",
-        send_to_all: true, recipients: [],
+        send_to_all: true, recipients: [], image: null,
     });
+    const [uploadingFile, setUploadingFile] = useState<File | null>(null);
+    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [recipientInput, setRecipientInput] = useState("");
 
     const fetchAll = useCallback(async () => {
@@ -235,7 +238,9 @@ const BroadcastsSection: React.FC = () => {
 
     const openCreate = () => {
         setEditing(null);
-        setForm({ template: null, subject: "", message: "", type: "IN_APP", send_to_all: true, recipients: [] });
+        setForm({ template: null, subject: "", message: "", type: "IN_APP", send_to_all: true, recipients: [], image: null });
+        setUploadingFile(null);
+        setPreviewUrl(null);
         setRecipientInput("");
         setModalOpen(true);
     };
@@ -245,7 +250,10 @@ const BroadcastsSection: React.FC = () => {
         setForm({
             template: b.template, subject: b.subject, message: b.message,
             type: b.type, send_to_all: b.send_to_all, recipients: b.recipients || [],
+            image: b.image_url,
         });
+        setUploadingFile(null);
+        setPreviewUrl(b.image_url || null);
         setRecipientInput((b.recipients || []).join(", "));
         setModalOpen(true);
     };
@@ -256,10 +264,28 @@ const BroadcastsSection: React.FC = () => {
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
         setSaving(true);
-        const payload: BroadcastPayload = {
-            ...form,
-            recipients: form.send_to_all ? [] : parseRecipients(recipientInput),
-        };
+
+        const recipients = form.send_to_all ? [] : parseRecipients(recipientInput);
+
+        // Use FormData if there is a file to upload
+        let payload: any;
+        if (uploadingFile) {
+            payload = new FormData();
+            if (form.template) payload.append("template", String(form.template));
+            payload.append("subject", form.subject);
+            payload.append("message", form.message);
+            payload.append("type", form.type);
+            payload.append("send_to_all", String(form.send_to_all));
+            if (recipients.length > 0) {
+                payload.append("recipients", JSON.stringify(recipients));
+            }
+            payload.append("image", uploadingFile);
+        } else {
+            payload = {
+                ...form,
+                recipients,
+            };
+        }
         try {
             if (editing) {
                 const updated = await adminNotificationApi.updateBroadcast(editing.id, payload);
@@ -347,8 +373,20 @@ const BroadcastsSection: React.FC = () => {
                                                 {b.sent_at && (
                                                     <span>Sent {new Date(b.sent_at).toLocaleDateString("en-AE", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</span>
                                                 )}
+                                                {b.image_url && (
+                                                    <span className="flex items-center gap-1 text-cyan-600 font-bold">
+                                                        <Image size={10} /> Has Image
+                                                    </span>
+                                                )}
                                             </div>
                                         </div>
+
+                                        {/* Image Thumbnail (Small) */}
+                                        {normalizeMediaUrl(b.image_url) && (
+                                            <div className="hidden lg:block w-16 h-10 rounded-lg overflow-hidden border border-slate-100 flex-shrink-0">
+                                                <img src={normalizeMediaUrl(b.image_url)!} alt="Broadcast" className="w-full h-full object-cover" />
+                                            </div>
+                                        )}
 
                                         {/* Actions */}
                                         <div className="flex items-center gap-2 flex-shrink-0">
@@ -432,6 +470,58 @@ const BroadcastsSection: React.FC = () => {
                 <FormField label="Message">
                     <textarea rows={4} value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} className="admin-input resize-none" placeholder="Up to 50% off today." />
                 </FormField>
+                
+                {form.type === "PUSH" && (
+                    <FormField label="Push Image (Optional)">
+                        <div className="space-y-4">
+                            <div 
+                                className="relative group aspect-video rounded-2xl bg-slate-50 border-2 border-dashed border-slate-200 overflow-hidden flex flex-col items-center justify-center cursor-pointer hover:bg-slate-100 transition-all"
+                                onClick={() => document.getElementById('broadcast-image')?.click()}
+                            >
+                                {previewUrl ? (
+                                    <>
+                                        <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
+                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                            <Camera className="text-white" size={24} />
+                                        </div>
+                                    </>
+                                ) : (
+                                    <div className="flex flex-col items-center text-slate-400">
+                                        <Image size={32} className="mb-2" />
+                                        <span className="text-xs font-bold">Click to upload image</span>
+                                        <span className="text-[10px]">Max size: 2MB</span>
+                                    </div>
+                                )}
+                                <input 
+                                    id="broadcast-image"
+                                    type="file" 
+                                    className="hidden" 
+                                    accept="image/*"
+                                    onChange={(e) => {
+                                        const file = e.target.files?.[0];
+                                        if (file) {
+                                            setUploadingFile(file);
+                                            setPreviewUrl(URL.createObjectURL(file));
+                                        }
+                                    }}
+                                />
+                            </div>
+                            {previewUrl && (
+                                <button 
+                                    type="button"
+                                    onClick={() => {
+                                        setUploadingFile(null);
+                                        setPreviewUrl(null);
+                                        setForm({ ...form, image: null });
+                                    }}
+                                    className="text-[10px] font-bold text-rose-500 hover:text-rose-600 transition-colors ml-2"
+                                >
+                                    Remove Image
+                                </button>
+                            )}
+                        </div>
+                    </FormField>
+                )}
 
                 {/* Audience */}
                 <FormField label="Audience">

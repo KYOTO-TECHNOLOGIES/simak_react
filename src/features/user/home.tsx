@@ -10,20 +10,36 @@ import ReviewsSection from "../../components/userside/reviewsSection";
 import ProfileCompletionModal from "../../components/userside/ProfileCompletionModal";
 import { useSelector } from "react-redux";
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 
 const Home: React.FC = () => {
   const { user, isAuthenticated } = useSelector((state: any) => state.auth);
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const { i18n } = useTranslation();
 
   useEffect(() => {
     if (isAuthenticated && user) {
       const completedKey = `profile_completed_${user.id}`;
       const alreadyCompleted = localStorage.getItem(completedKey);
-      if (!alreadyCompleted) {
+
+      const userLang = user?.profile?.preferred_language;
+      const hasPreferredLanguage = userLang && ["en", "ar", "cn"].includes(userLang);
+
+      if (hasPreferredLanguage) {
+        // User already has a preferred language — apply it and skip modal
+        if (i18n.language !== userLang) {
+          i18n.changeLanguage(userLang);
+          localStorage.setItem("i18nextLng", userLang);
+        }
+        if (!alreadyCompleted) {
+          localStorage.setItem(completedKey, "true");
+        }
+      } else if (!alreadyCompleted) {
+        // No preferred language set — show the modal
         setShowProfileModal(true);
       }
     }
-  }, [isAuthenticated, user]);
+  }, [isAuthenticated, user, i18n]);
 
   return (
     <div className="flex flex-col bg-white">

@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import { useTranslation } from "react-i18next";
+import { useTranslation, Trans } from "react-i18next";
 import { GoogleLogin } from "@react-oauth/google";
 import useLanguageToggle from "../../hooks/useLanguageToggle";
 
@@ -380,7 +380,24 @@ const Login: React.FC = () => {
                     <Check size={12} strokeWidth={3} className="opacity-0 peer-checked:opacity-100 transition-opacity text-cyan-600" />
                   </span>
                   <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 leading-relaxed">
-                    I agree to Terms & Privacy
+                    <Trans
+                      i18nKey="auth.termsSentence"
+                      ns="common"
+                      components={[
+                        <a
+                          href="/terms-of-service"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-cyan-600 hover:text-cyan-700 underline underline-offset-2 transition-colors"
+                        />,
+                        <a
+                          href="/privacy-policy"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-cyan-600 hover:text-cyan-700 underline underline-offset-2 transition-colors"
+                        />,
+                      ]}
+                    />
                   </span>
                 </label>
 

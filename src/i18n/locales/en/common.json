@@ -56,7 +56,7 @@
     "otpSixDigits": "OTP (6 digits)",
     "otpExpiredText": "This OTP has expired. Please request a new one.",
     "verifyContinue": "Verify & Continue",
-    "termsSentence": "I agree to the Terms and Privacy Policy."
+    "termsSentence": "I agree to the <0>Terms</0> and <1>Privacy Policy</1>."
   },
   "mobile": {
     "menu": "Menu",

@@ -45,6 +45,9 @@ function mapPaymentDto(dto: PaymentDto): Payment {
         orderStatus: dto.order_status ?? "",
         date: dto.transaction_date,
         updatedAt: dto.updated_date,
+        transactionId: dto.transaction_id,
+        ziinaPaymentIntentId: dto.ziina_payment_intent_id,
+        providerResponse: dto.provider_response,
     };
 }
 
@@ -68,12 +71,9 @@ function* fetchPaymentsWorker(
         }
 
         const raw: any = yield call(paymentsApi.list, action.payload);
-        console.log("API response:", raw);
         const totalCount = raw?.count || 0;
         const items = normalizePayments(raw);
         const page = action.payload?.page || 1;
-
-        console.log("Normalized payments:", items.length, "Total count:", totalCount);
 
         yield put(
             paymentsActions.fetchPaymentsSuccess({
@@ -83,19 +83,65 @@ function* fetchPaymentsWorker(
             })
         );
     } catch (e: any) {
-        console.error("Fetch Payments Error:", {
-            status: e?.response?.status,
-            data: e?.response?.data,
-            message: e?.message,
-        });
-
         const errMsg =
             e?.response?.data?.detail ||
             e?.response?.data?.message ||
             e?.message ||
             "Failed to fetch payments";
-
         yield put(paymentsActions.fetchPaymentsFailure(errMsg));
+    }
+}
+
+function* fetchPaymentDetailsWorker(
+    action: ReturnType<typeof paymentsActions.fetchPaymentDetailsRequest>
+): SagaIterator {
+    try {
+        const raw: any = yield call(paymentsApi.details, action.payload);
+        const payment = mapPaymentDto(raw);
+        yield put(paymentsActions.fetchPaymentDetailsSuccess(payment));
+    } catch (e: any) {
+        const errMsg =
+            e?.response?.data?.detail ||
+            e?.response?.data?.message ||
+            e?.message ||
+            "Failed to fetch payment details";
+        yield put(paymentsActions.fetchPaymentDetailsFailure(errMsg));
+    }
+}
+
+function* createRefundWorker(
+    action: ReturnType<typeof paymentsActions.createRefundRequest>
+): SagaIterator {
+    try {
+        const { paymentId, amount_fils } = action.payload;
+        yield call(paymentsApi.createRefund, paymentId, { amount_fils });
+        yield put(paymentsActions.createRefundSuccess());
+        // Refresh details after refund
+        yield put(paymentsActions.fetchPaymentDetailsRequest(paymentId));
+        yield put(paymentsActions.fetchRefundStatusRequest(paymentId));
+    } catch (e: any) {
+        const errMsg =
+            e?.response?.data?.detail ||
+            e?.response?.data?.message ||
+            e?.message ||
+            "Failed to initiate refund";
+        yield put(paymentsActions.createRefundFailure(errMsg));
+    }
+}
+
+function* fetchRefundStatusWorker(
+    action: ReturnType<typeof paymentsActions.fetchRefundStatusRequest>
+): SagaIterator {
+    try {
+        const raw: any = yield call(paymentsApi.getRefundStatus, action.payload);
+        yield put(paymentsActions.fetchRefundStatusSuccess(raw));
+    } catch (e: any) {
+        const errMsg =
+            e?.response?.data?.detail ||
+            e?.response?.data?.message ||
+            e?.message ||
+            "Failed to fetch refund status";
+        yield put(paymentsActions.fetchRefundStatusFailure(errMsg));
     }
 }
 
@@ -145,6 +191,18 @@ export function* paymentsSaga(): SagaIterator {
     yield takeLatest(
         paymentsActions.fetchPaymentsRequest.type,
         fetchPaymentsWorker
+    );
+    yield takeLatest(
+        paymentsActions.fetchPaymentDetailsRequest.type,
+        fetchPaymentDetailsWorker
+    );
+    yield takeLatest(
+        paymentsActions.createRefundRequest.type,
+        createRefundWorker
+    );
+    yield takeLatest(
+        paymentsActions.fetchRefundStatusRequest.type,
+        fetchRefundStatusWorker
     );
     yield takeLatest(
         paymentsActions.updatePaymentStatusRequest.type,

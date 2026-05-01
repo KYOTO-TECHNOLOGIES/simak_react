@@ -54,6 +54,7 @@ export interface BroadcastDto {
     send_to_all: boolean;
     recipients: number[];
     sent_at?: string | null;
+    image_url?: string | null;
     created_at?: string;
     updated_at?: string;
 }
@@ -65,6 +66,7 @@ export interface BroadcastPayload {
     type: string;
     send_to_all: boolean;
     recipients?: number[];
+    image?: string | null;
 }
 
 /* ── API ── */
@@ -123,12 +125,12 @@ export const adminNotificationApi = {
         return Array.isArray(res.data) ? res.data : (res.data.results || []);
     },
 
-    createBroadcast: async (data: BroadcastPayload): Promise<BroadcastDto> => {
+    createBroadcast: async (data: BroadcastPayload | FormData): Promise<BroadcastDto> => {
         const res = await api.post("/notifications/broadcasts/", data);
         return res.data;
     },
 
-    updateBroadcast: async (id: number, data: Partial<BroadcastPayload>): Promise<BroadcastDto> => {
+    updateBroadcast: async (id: number, data: Partial<BroadcastPayload> | FormData): Promise<BroadcastDto> => {
         const res = await api.patch(`/notifications/broadcasts/${id}/`, data);
         return res.data;
     },

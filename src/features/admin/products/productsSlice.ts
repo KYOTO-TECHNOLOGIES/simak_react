@@ -28,6 +28,7 @@ export interface Product {
     expectedDeliveryTime: string | null;
     discountTiers: { id?: number; minQuantity: number; discountPercentage: number }[];
     deliveryTiers: { id?: number; minQuantity: number; deliveryDays: number }[];
+    preparation_specifications?: any[];
     createdAt: string;
     updatedAt: string;
 }

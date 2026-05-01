@@ -2,11 +2,13 @@ import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ChevronLeft, Download, Package, MessageSquare, Send, Navigation, Truck, UserCheck } from "lucide-react";
 import { ordersApi, type DeliverySlotDto } from "./ordersApi";
+import { paymentsApi } from "../payments/paymentsApi";
 import type { OrderStatus, PaymentStatus } from "./ordersSlice";
 import { useDispatch } from "react-redux";
 import { ordersActions } from "./ordersSlice";
 import { deliveryApi } from "../../delivery/deliveryApi";
 import type { DeliveryBoyUser, DeliveryAssignment, CancellationRequest } from "../../delivery/deliveryApi";
+import { useToast } from "../../../components/ui/Toast";
 
 type OrderItem = {
   id: number;
@@ -16,6 +18,11 @@ type OrderItem = {
   quantity: number;
   price: number;
   subtotal: number;
+  preparationSpecificationName?: string | null;
+  preparationExtraPrice?: number;
+  preparationInstructions?: string | null;
+  totalWithPreparation?: number;
+  productUnitDisplay?: string | null;
 };
 
 type ShippingAddress = {
@@ -33,6 +40,7 @@ type ShippingAddress = {
 };
 
 type Payment = {
+  id?: number;
   transactionId: string;
   amount: number;
   status: string;
@@ -163,6 +171,7 @@ const OrderDetailsPage: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const toast = useToast();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -212,6 +221,7 @@ const OrderDetailsPage: React.FC = () => {
         const payment: Payment =
           raw.payment
             ? {
+              id: raw.payment.id || raw.payment.payment_id,
               transactionId: raw.payment.transaction_id ?? "",
               amount: parseFloat(raw.payment.amount) || 0,
               status: raw.payment.status ?? "",
@@ -256,6 +266,11 @@ const OrderDetailsPage: React.FC = () => {
               quantity: dto.quantity,
               price: parseFloat(dto.price) || 0,
               subtotal: parseFloat(dto.subtotal) || 0,
+              preparationSpecificationName: dto.preparation_specification_name ?? null,
+              preparationExtraPrice: parseFloat(dto.preparation_extra_price || "") || 0,
+              preparationInstructions: dto.preparation_instructions ?? null,
+              totalWithPreparation: parseFloat(dto.total_with_preparation || "") || 0,
+              productUnitDisplay: dto.product_unit_display ?? null,
             }))
             : [],
           statusHistory,
@@ -292,9 +307,50 @@ const OrderDetailsPage: React.FC = () => {
     setAssignMsg(null);
     try {
       await deliveryApi.adminAssignDeliveryBoy(order.id, Number(selectedBoyId));
-      setAssignMsg({ type: "ok", text: "Delivery boy assigned successfully." });
+      
+      // Re-fetch everything because assigning can change status
       const raw = await ordersApi.details(order.id);
-      setOrder((prev) => prev ? { ...prev, deliveryAssignment: raw.delivery_assignment ?? null, cancellationRequest: raw.cancellation_request ?? null } : prev);
+      
+      // Reuse the normalization and mapping logic
+      const addr = raw.shipping_address_details;
+      const shippingAddress: ShippingAddress = addr ? {
+        id: addr.id,
+        label: addr.label ?? "",
+        fullName: addr.full_name ?? "",
+        phoneNumber: addr.phone_number ?? "",
+        streetAddress: addr.street_address ?? "",
+        area: addr.area ?? "",
+        city: addr.city ?? "",
+        emirate: addr.emirate ?? "",
+        country: addr.country ?? "",
+        latitude: addr.latitude ?? null,
+        longitude: addr.longitude ?? null,
+      } : { id: "", label: "", fullName: "", phoneNumber: "", streetAddress: "", area: "", city: "", emirate: "", country: "", latitude: null, longitude: null };
+
+      const payment: Payment = raw.payment ? {
+        id: raw.payment.id || raw.payment.payment_id,
+        transactionId: raw.payment.transaction_id ?? "",
+        amount: parseFloat(raw.payment.amount) || 0,
+        status: raw.payment.status ?? "",
+        paymentMethod: raw.payment.payment_method ?? "",
+        receiptNumber: raw.payment.receipt?.receipt_number ?? null,
+        createdAt: raw.payment.created_at ?? "",
+      } : null;
+
+      const shaped: Order = {
+        ...order,
+        status: normalizeOrderStatus(raw.status ?? "pending"),
+        shippingAddress,
+        payment,
+        paymentStatus: payment ? normalizePaymentStatus(payment.status) : "Pending",
+        deliveryAssignment: raw.delivery_assignment ?? null,
+        cancellationRequest: raw.cancellation_request ?? null,
+        updatedAt: raw.updated_at,
+      };
+
+      setOrder(shaped);
+      toast.show(`Assigned to ${shaped.deliveryAssignment?.delivery_boy_name || "delivery boy"}`, "success");
+      setAssignMsg({ type: "ok", text: "Delivery boy assigned successfully." });
     } catch (e: any) {
       const d = e?.response?.data;
       const msg = d?.detail || d?.error || d?.message || (typeof d === "string" ? d : null) || e?.message || "Assignment failed.";
@@ -334,6 +390,27 @@ const OrderDetailsPage: React.FC = () => {
     downloadBlob(blob, `delivery_details_${order.orderNumber}.pdf`);
   }, [order]);
 
+  const handleViewPayment = useCallback(async () => {
+    if (!order) return;
+    // 1. Try existing ID
+    if (order.payment?.id) {
+      navigate(`/admin/payments/${order.payment.id}`);
+      return;
+    }
+    // 2. Try to search by order ID
+    try {
+      const searchRes = await paymentsApi.list({ order_id: order.id, limit: 1 });
+      if (searchRes.results.length > 0) {
+        navigate(`/admin/payments/${searchRes.results[0].payment_id}`);
+      } else {
+        alert("Payment record not found for this order.");
+      }
+    } catch (e) {
+      console.error("Failed to find payment:", e);
+      alert("Error locating payment record.");
+    }
+  }, [order, navigate]);
+
   const statusOptions: OrderStatus[] = ["PENDING", "PAID", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED"];
 
   return (
@@ -364,6 +441,13 @@ const OrderDetailsPage: React.FC = () => {
             <div className="flex flex-col items-start sm:items-end gap-3 w-full sm:w-auto">
               <div className="flex items-center gap-2">
                 <OrderStatusBadge status={order.status} />
+                <button
+                  onClick={() => window.print()}
+                  className="p-2 bg-white border border-[#EEEEEE] rounded-lg text-xs font-bold hover:bg-gray-50 flex items-center gap-2 shadow-sm"
+                  title="Print Delivery Slip"
+                >
+                  <Package size={14} /> <span className="hidden sm:inline">Print Slip</span>
+                </button>
                 <button
                   onClick={handleDownloadAdminReceipt}
                   className="p-2 bg-white border border-[#EEEEEE] rounded-lg text-xs font-bold hover:bg-gray-50"
@@ -526,6 +610,11 @@ const OrderDetailsPage: React.FC = () => {
                                 quantity: dto.quantity,
                                 price: parseFloat(dto.price) || 0,
                                 subtotal: parseFloat(dto.subtotal) || 0,
+                                preparationSpecificationName: dto.preparation_specification_name ?? null,
+                                preparationExtraPrice: parseFloat(dto.preparation_extra_price || "") || 0,
+                                preparationInstructions: dto.preparation_instructions ?? null,
+                                totalWithPreparation: parseFloat(dto.total_with_preparation || "") || 0,
+                                productUnitDisplay: dto.product_unit_display ?? null,
                               }))
                               : [],
                             statusHistory,
@@ -562,21 +651,21 @@ const OrderDetailsPage: React.FC = () => {
                 </h4>
                 {order.items.length > 0 ? (
                   order.items.map((item) => (
-                    <div key={item.id} className="flex justify-between items-center py-3 border-b border-dashed border-[#EEEEEE] last:border-0">
-                      <div className="flex items-center gap-3">
+                    <div key={item.id} className="flex justify-between items-start py-4 border-b border-dashed border-[#EEEEEE] last:border-0">
+                      <div className="flex items-start gap-3">
                         <button
                           onClick={() => navigate(`/admin/products/${item.productId}`)}
-                          className="w-10 h-10 rounded-lg overflow-hidden bg-[#F4F4F5] flex items-center justify-center shrink-0 hover:ring-2 hover:ring-black/10 transition-all"
+                          className="w-14 h-14 rounded-lg overflow-hidden bg-[#F4F4F5] flex items-center justify-center shrink-0 hover:ring-2 hover:ring-black/10 transition-all mt-1"
                           title="Open product"
                         >
                           {item.productImage ? (
                             <img src={item.productImage} alt={item.productName} className="w-full h-full object-cover" />
                           ) : (
-                            <Package size={16} className="text-[#A1A1AA]" />
+                            <Package size={20} className="text-[#A1A1AA]" />
                           )}
                         </button>
                         <div>
-                          <p className="text-xs font-bold">
+                          <p className="text-sm font-black">
                             <button
                               onClick={() => navigate(`/admin/products/${item.productId}`)}
                               className="hover:underline"
@@ -585,13 +674,34 @@ const OrderDetailsPage: React.FC = () => {
                               {item.productName || "Unknown Product"}
                             </button>
                           </p>
-                          <p className="text-[10px] text-[#A1A1AA]">
-                            Qty: {item.quantity || 0} · AED {(item.price || 0).toFixed(2)}/ea
+                          <p className="text-[11px] text-[#71717A] font-medium mt-0.5">
+                            Qty: <span className="text-black font-bold">{item.quantity || 0} {item.productUnitDisplay || ""}</span> · AED {(item.price || 0).toFixed(2)}/ea
                           </p>
+                          {item.preparationSpecificationName && (
+                            <div className="mt-2 p-2.5 bg-cyan-50/50 border border-cyan-100 rounded-xl max-w-sm">
+                                <p className="text-[11px] font-bold text-cyan-900 flex items-center gap-1.5">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-cyan-500" />
+                                  Prep: <span className="font-black underline decoration-cyan-200">{item.preparationSpecificationName}</span>
+                                  {item.preparationExtraPrice && item.preparationExtraPrice > 0 ? ` (+AED ${item.preparationExtraPrice.toFixed(2)})` : ""}
+                                </p>
+                                {item.preparationInstructions && (
+                                  <p className="text-[10px] text-cyan-700/70 mt-1 italic leading-relaxed">
+                                    Note: {item.preparationInstructions}
+                                  </p>
+                                )}
+                            </div>
+                          )}
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="text-xs font-bold">AED {(item.subtotal || 0).toFixed(2)}</p>
+                        {item.preparationSpecificationName && item.preparationExtraPrice && item.preparationExtraPrice > 0 ? (
+                            <>
+                                <p className="text-sm font-black text-black">AED {(item.totalWithPreparation || item.subtotal).toFixed(2)}</p>
+                                <p className="text-[10px] text-gray-400 font-medium">incl. prep</p>
+                            </>
+                        ) : (
+                            <p className="text-sm font-black text-black">AED {(item.subtotal || 0).toFixed(2)}</p>
+                        )}
                       </div>
                     </div>
                   ))
@@ -696,7 +806,16 @@ const OrderDetailsPage: React.FC = () => {
                 <InfoField label="Emirate" value={order.shippingAddress.emirate || "—"} />
                 <InfoField label="Payment Method" value={order.paymentMethod} />
                 <InfoField label="Payment">
-                  <PaymentBadge status={order.paymentStatus} />
+                  <div className="flex items-center gap-2">
+                    <PaymentBadge status={order.paymentStatus} />
+                    <button
+                      onClick={handleViewPayment}
+                      className="text-[10px] font-bold px-2 py-1 rounded-full border border-[#EEEEEE] hover:bg-black hover:text-white transition-colors"
+                      title="View detailed payment record"
+                    >
+                      View Details
+                    </button>
+                  </div>
                 </InfoField>
                 <InfoField
                   label="Order Date"
@@ -717,7 +836,17 @@ const OrderDetailsPage: React.FC = () => {
                   />
                 )}
                 {order.deliverySlotDetails && <InfoField label="Preferred Delivery Slot" value={order.deliverySlotDetails} />}
-                {order.payment?.transactionId && <InfoField label="Transaction ID" value={order.payment.transactionId} />}
+                {order.payment?.transactionId && (
+                  <InfoField label="Transaction ID">
+                    <button
+                      onClick={handleViewPayment}
+                      className="text-sm font-bold text-blue-600 hover:underline text-left transition-all"
+                      title="View Payment Details"
+                    >
+                      {order.payment.transactionId}
+                    </button>
+                  </InfoField>
+                )}
                 {order.shippingAddress.latitude && order.shippingAddress.longitude && (
                   <InfoField label="Location">
                     <a
@@ -823,8 +952,101 @@ const OrderDetailsPage: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Hidden Print Content */}
+      {order && (
+        <div className="print-area">
+          <DeliverySlip order={order} />
+        </div>
+      )}
+      <PrintStyles />
     </div>
   );
 };
+
+/* ── DELIVERY SLIP COMPONENT (PRINT ONLY) ── */
+const DeliverySlip = ({ order }: { order: Order }) => {
+  return (
+    <div className="hidden print:block w-[80mm] p-4 bg-white text-black font-sans leading-tight">
+      <div className="border-2 border-black p-2 space-y-4">
+        {/* Header */}
+        <div className="text-center border-b-2 border-black pb-2">
+          <h1 className="text-xl font-black">{order.orderNumber}</h1>
+          <p className="text-[10px] font-bold uppercase tracking-widest">{new Date(order.createdAt).toLocaleDateString()}</p>
+        </div>
+
+        {/* Customer Info */}
+        <div className="space-y-1">
+          <p className="text-[10px] font-black uppercase border-b border-black">Customer</p>
+          <p className="text-sm font-black uppercase">{order.shippingAddress.fullName}</p>
+          <p className="text-xs font-bold">{order.shippingAddress.phoneNumber}</p>
+          <p className="text-[10px] leading-tight">
+            {order.shippingAddress.streetAddress}, {order.shippingAddress.area}<br />
+            {order.shippingAddress.city}, {order.shippingAddress.emirate}
+          </p>
+        </div>
+
+        {/* Items */}
+        <div className="space-y-1">
+          <p className="text-[10px] font-black uppercase border-b border-black">Items</p>
+          <table className="w-full text-[10px]">
+            <tbody>
+              {order.items.map((item) => (
+                <tr key={item.id} className="border-b border-gray-200 last:border-0">
+                  <td className="py-1 align-top font-bold w-12">{item.quantity} {item.productUnitDisplay || ""}</td>
+                  <td className="py-1 align-top">
+                    <span className="font-black uppercase">{item.productName}</span>
+                    {item.preparationSpecificationName && (
+                      <div className="italic font-bold text-[9px] mt-0.5">
+                        Prep: {item.preparationSpecificationName}
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Footer */}
+        <div className="pt-2 border-t-2 border-black flex justify-between items-end">
+          <div>
+            <p className="text-[9px] font-black uppercase">Payment</p>
+            <p className="text-xs font-black uppercase">{order.paymentMethod} - {order.paymentStatus}</p>
+          </div>
+          <div className="text-right">
+            <p className="text-[10px] font-black uppercase">Total</p>
+            <p className="text-sm font-black">AED {order.total.toFixed(2)}</p>
+          </div>
+        </div>
+
+        <div className="text-center pt-4 opacity-50">
+          <p className="text-[8px] font-bold uppercase">Thank you for shopping with us!</p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ── PRINT STYLES ── */
+const PrintStyles = () => (
+  <style dangerouslySetInnerHTML={{ __html: `
+    @media print {
+      body * { visibility: hidden; }
+      .print-area, .print-area * { visibility: visible; }
+      .print-area { 
+        position: absolute; 
+        left: 0; 
+        top: 0; 
+        width: 80mm;
+        height: auto;
+      }
+      @page {
+        size: 80mm auto;
+        margin: 0;
+      }
+    }
+  `}} />
+);
 
 export default OrderDetailsPage;
