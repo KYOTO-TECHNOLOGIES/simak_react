@@ -8,7 +8,8 @@
   "brand": {
     "name": "西马克 新鲜",
     "signature": "品质标志",
-    "subtitle": "在线海鲜市场"
+    "subtitle": "在线海鲜市场",
+    "motto": "鲜活海鲜，从大海到家"
   },
   "location": {
     "deliverTo": "配送到",
@@ -76,9 +77,10 @@
       "placeholder": "输入您的电子邮件地址",
       "subscribe": "订阅"
     },
-    "brandDescription": "自 2016 年以来，SIMAK FRESH 从迪拜的根基发展而来，成为一个值得信赖的海鲜合作伙伴，涉及进出口、养殖、零售和批发。",
-    "location": "印度，喀拉拉邦",
-    "timing": "周一至周日，早上 6点 – 晚上 9点",
+    "brandDescription": "思马克新鲜是您购买最鲜活海鲜的首选在线平台。我们将高品质、鲜活及新鲜的渔获直接从大海送到您家，确保每一餐都能享受到极致的鲜美与品质。",
+    "headOffice": "总公司：阿联酋，沙迦，沙迦媒体城",
+    "branch": "分店：阿联酋，阿布扎比，Mushrif 购物中心",
+    "timing": "周一至周日，早上 8点 – 晚上 8点",
     "shop": "商城",
     "company": "公司",
     "support": "客户支持",

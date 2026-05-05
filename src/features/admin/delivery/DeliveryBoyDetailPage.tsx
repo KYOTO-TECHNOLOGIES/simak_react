@@ -13,8 +13,12 @@ import {
   Loader2,
   ToggleLeft,
   ToggleRight,
+  Package,
+  Clock,
+  ExternalLink,
 } from "lucide-react";
 import { deliveryApi, type DeliveryBoyUser } from "../../delivery/deliveryApi";
+import { ordersApi, type OrderDto } from "../orders/ordersApi";
 
 /* ─── UAE emirates ─── */
 const EMIRATES = [
@@ -120,120 +124,137 @@ function EditModal({ boy, onClose, onSaved }: EditModalProps) {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="overflow-y-auto flex-1 px-6 py-5 space-y-5">
+        <form onSubmit={handleSubmit} className="overflow-y-auto flex-1 px-8 py-6 space-y-8 custom-scrollbar">
           {/* Name */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
+          <div className="grid grid-cols-2 gap-6">
+            <div className="space-y-1.5">
               <label className={labelCls}>First Name</label>
               <input className={inputCls} value={form.first_name} onChange={(e) => set("first_name", e.target.value)} />
             </div>
-            <div>
+            <div className="space-y-1.5">
               <label className={labelCls}>Last Name</label>
               <input className={inputCls} value={form.last_name} onChange={(e) => set("last_name", e.target.value)} />
             </div>
           </div>
 
           {/* Contact */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
+          <div className="grid grid-cols-2 gap-6">
+            <div className="space-y-1.5">
               <label className={labelCls}>Email</label>
               <input type="email" className={inputCls} value={form.email} onChange={(e) => set("email", e.target.value)} />
             </div>
-            <div>
+            <div className="space-y-1.5">
               <label className={labelCls}>Phone</label>
               <input className={inputCls} value={form.phone_number} onChange={(e) => set("phone_number", e.target.value)} />
             </div>
           </div>
 
           {/* Emirates */}
-          <div>
+          <div className="space-y-3">
             <label className={labelCls}>Assigned Emirates</label>
-            <div className="flex flex-wrap gap-2 mt-1">
-              {EMIRATES.map((em) => (
-                <button
-                  key={em.value}
-                  type="button"
-                  onClick={() => toggleEmirate(em.value)}
-                  className={`px-3 py-1.5 text-[11px] font-semibold rounded-lg border transition-all ${
-                    form.assigned_emirates.includes(em.value)
-                      ? "bg-black text-white border-black"
-                      : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
-                  }`}
-                >
-                  {em.label}
-                </button>
-              ))}
+            <div className="flex flex-wrap gap-2.5">
+              {EMIRATES.map((em) => {
+                const isSelected = form.assigned_emirates.includes(em.value);
+                return (
+                  <button
+                    key={em.value}
+                    type="button"
+                    onClick={() => toggleEmirate(em.value)}
+                    className={`px-4 py-2 text-[11px] font-bold rounded-xl border transition-all duration-200 flex items-center gap-2 ${
+                      isSelected
+                        ? "bg-[#18181B] text-white border-[#18181B] shadow-lg shadow-black/10"
+                        : "bg-white text-slate-500 border-slate-200 hover:border-slate-400 hover:bg-slate-50"
+                    }`}
+                  >
+                    {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)]" />}
+                    {em.label}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
           {/* Vehicle + Identity */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
+          <div className="grid grid-cols-2 gap-6">
+            <div className="space-y-1.5">
               <label className={labelCls}>Vehicle Number</label>
-              <input className={inputCls} value={form.vehicle_number} onChange={(e) => set("vehicle_number", e.target.value)} placeholder="ABC123" />
+              <input className={inputCls} value={form.vehicle_number} onChange={(e) => set("vehicle_number", e.target.value)} placeholder="e.g. AUH-2001" />
             </div>
-            <div>
+            <div className="space-y-1.5">
               <label className={labelCls}>Identity Number</label>
-              <input className={inputCls} value={form.identity_number} onChange={(e) => set("identity_number", e.target.value)} />
+              <input className={inputCls} value={form.identity_number} onChange={(e) => set("identity_number", e.target.value)} placeholder="e.g. 784-1234-..." />
             </div>
           </div>
 
           {/* Emergency */}
-          <div>
+          <div className="space-y-1.5">
             <label className={labelCls}>Emergency Contact</label>
             <input className={inputCls} value={form.emergency_contact} onChange={(e) => set("emergency_contact", e.target.value)} />
           </div>
 
           {/* Notes */}
-          <div>
+          <div className="space-y-1.5">
             <label className={labelCls}>Notes</label>
-            <textarea className={inputCls} rows={2} value={form.notes} onChange={(e) => set("notes", e.target.value)} />
+            <textarea className={inputCls} rows={3} value={form.notes} onChange={(e) => set("notes", e.target.value)} />
           </div>
 
           {/* Toggles */}
-          <div className="flex flex-col gap-3">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-gray-700">Available for delivery</span>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 hover:bg-slate-100/50 transition-colors">
+              <div className="flex flex-col gap-0.5">
+                <span className="text-xs font-bold text-slate-900">Available for delivery</span>
+                <p className="text-[10px] text-slate-400">Can receive new delivery assignments</p>
+              </div>
               <button
                 type="button"
                 onClick={() => set("is_available", !form.is_available)}
-                className={`relative w-10 h-5 rounded-full transition-colors ${form.is_available ? "bg-emerald-500" : "bg-gray-200"}`}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-all duration-300 ${
+                  form.is_available ? "bg-emerald-500" : "bg-slate-300"
+                }`}
               >
-                <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${form.is_available ? "translate-x-5" : "translate-x-0.5"}`} />
+                <span className={`${form.is_available ? "translate-x-6" : "translate-x-1"} inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-300 shadow-sm`} />
               </button>
             </div>
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-gray-700">Account active</span>
+            <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 hover:bg-slate-100/50 transition-colors">
+              <div className="flex flex-col gap-0.5">
+                <span className="text-xs font-bold text-slate-900">Account active</span>
+                <p className="text-[10px] text-slate-400">Enable or disable this boy's account</p>
+              </div>
               <button
                 type="button"
                 onClick={() => set("is_active", !form.is_active)}
-                className={`relative w-10 h-5 rounded-full transition-colors ${form.is_active ? "bg-emerald-500" : "bg-gray-200"}`}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-all duration-300 ${
+                  form.is_active ? "bg-emerald-500" : "bg-slate-300"
+                }`}
               >
-                <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${form.is_active ? "translate-x-5" : "translate-x-0.5"}`} />
+                <span className={`${form.is_active ? "translate-x-6" : "translate-x-1"} inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-300 shadow-sm`} />
               </button>
             </div>
           </div>
 
           {err && (
-            <p className="text-xs text-rose-600 bg-rose-50 border border-rose-100 rounded-lg px-3 py-2">{err}</p>
+            <div className="p-4 bg-rose-50 border border-rose-100 rounded-2xl flex items-start gap-3">
+              <XCircle className="text-rose-500 shrink-0 mt-0.5" size={16} />
+              <p className="text-xs font-medium text-rose-600">{err}</p>
+            </div>
           )}
         </form>
 
-        <div className="px-6 py-4 border-t border-[#EEEEEE] flex gap-3">
+        <div className="px-8 py-6 border-t border-slate-100 flex gap-4 bg-slate-50/50">
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 py-2 border border-[#EEEEEE] rounded-lg text-sm font-bold text-gray-600 hover:bg-gray-50"
+            className="flex-1 py-4 border border-slate-200 bg-white rounded-2xl text-sm font-bold text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-all active:scale-95"
           >
             Cancel
           </button>
           <button
             onClick={handleSubmit as any}
             disabled={saving}
-            className="flex-1 py-2 bg-black text-white rounded-lg text-sm font-bold hover:bg-gray-800 disabled:opacity-40 flex items-center justify-center gap-2"
+            className="flex-[2] py-4 bg-[#18181B] text-white rounded-2xl text-sm font-bold hover:bg-black transition-all shadow-xl shadow-black/10 flex items-center justify-center gap-2 active:scale-95 disabled:opacity-40"
           >
-            {saving ? <Loader2 size={14} className="animate-spin" /> : null}
-            {saving ? "Saving…" : "Save Changes"}
+            {saving ? <Loader2 size={16} className="animate-spin" /> : null}
+            {saving ? "Saving Changes…" : "Save Changes"}
           </button>
         </div>
       </div>
@@ -246,6 +267,7 @@ const DeliveryBoyDetailPage: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [boy, setBoy] = useState<DeliveryBoyUser | null>(null);
+  const [orders, setOrders] = useState<OrderDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editOpen, setEditOpen] = useState(false);
@@ -254,8 +276,12 @@ const DeliveryBoyDetailPage: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await deliveryApi.adminGetDeliveryBoyDetail(Number(id));
-      setBoy(data);
+      const [boyData, ordersData] = await Promise.all([
+        deliveryApi.adminGetDeliveryBoyDetail(Number(id)),
+        ordersApi.list({ delivery_assignment__delivery_boy: id, limit: 100 })
+      ]);
+      setBoy(boyData);
+      setOrders(ordersData.results || []);
     } catch (e: any) {
       setError(e?.response?.data?.detail || e?.message || "Failed to load.");
     } finally {
@@ -374,6 +400,75 @@ const DeliveryBoyDetailPage: React.FC = () => {
                     <p className="text-sm font-bold text-[#18181B]">—</p>
                   )}
                 </InfoField>
+              </div>
+
+              {/* Orders History */}
+              <div className="bg-white border border-[#EEEEEE] rounded-2xl p-6 space-y-5">
+                <div className="flex items-center justify-between border-b border-[#EEEEEE] pb-2">
+                  <h3 className="text-[10px] font-bold uppercase tracking-widest text-[#A1A1AA]">
+                    Orders History
+                  </h3>
+                  <span className="text-[10px] font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">
+                    {orders.length} Orders
+                  </span>
+                </div>
+
+                {orders.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-10 text-slate-400 space-y-2">
+                    <Package size={24} className="opacity-20" />
+                    <p className="text-xs italic">No orders handled yet.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {orders.map((o) => (
+                      <div
+                        key={o.id}
+                        className="p-4 border border-[#EEEEEE] rounded-2xl hover:border-slate-300 transition-all group"
+                      >
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-black text-slate-900">ORD-{o.id}</span>
+                              <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase border ${
+                                o.status === "DELIVERED" ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
+                                o.status === "CANCELLED" ? "bg-rose-50 text-rose-600 border-rose-100" :
+                                "bg-amber-50 text-amber-600 border-amber-100"
+                              }`}>
+                                {o.status}
+                              </span>
+                            </div>
+                            <p className="text-[10px] font-medium text-slate-400 flex items-center gap-1">
+                              <Clock size={10} /> {new Date(o.created_at).toLocaleDateString("en-AE", { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <div className="text-right">
+                              <p className="text-xs font-black text-slate-900">AED {parseFloat(o.total_amount).toFixed(2)}</p>
+                              <p className="text-[10px] text-slate-400">{o.shipping_address_details?.city}, {o.shipping_address_details?.area}</p>
+                            </div>
+                            <button
+                              onClick={() => navigate(`/admin/orders/${o.id}`)}
+                              className="p-2 bg-slate-50 text-slate-400 hover:bg-black hover:text-white rounded-xl transition-all"
+                              title="View Order Details"
+                            >
+                              <ExternalLink size={14} />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Cancellation Request Flag */}
+                        {o.delivery_cancel_request && (
+                          <div className={`mt-3 p-2.5 rounded-xl border text-[10px] font-bold flex items-center gap-2 ${
+                            o.delivery_cancel_request.status === "APPROVED" ? "bg-rose-50 border-rose-100 text-rose-600" : "bg-amber-50 border-amber-100 text-amber-600"
+                          }`}>
+                            <XCircle size={12} />
+                            <span>Cancellation {o.delivery_cancel_request.status}: {o.delivery_cancel_request.reason}</span>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 

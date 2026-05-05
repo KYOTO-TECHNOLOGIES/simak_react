@@ -59,7 +59,7 @@ api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   const url = config.url ?? "";
 
   // ✅ skip refresh endpoint
-  const isRefreshCall = url.includes("/auth/refresh");
+  const isRefreshCall = url.includes("/auth/refresh/");
 
   if (token && !isRefreshCall) {
     config.headers = config.headers ?? {};
@@ -88,7 +88,7 @@ let refreshPromise: Promise<string> | null = null;
 
 async function refreshAccessToken(): Promise<string> {
   // ✅ Refresh token is in httpOnly cookie -> browser sends it automatically
-  const res = await authApi.post("/auth/refresh", {}); // ✅ clean instance
+  const res = await authApi.post("/auth/refresh/", {}); // ✅ clean instance
 
   const newAccessToken = (res.data as any)?.accessToken as string | undefined;
   if (!newAccessToken) throw new Error("Refresh did not return accessToken");
@@ -143,7 +143,7 @@ api.interceptors.response.use(
 
     // ✅ Prevent infinite loop if refresh itself fails (401/500/etc.)
     const originalUrl = original?.url ?? "";
-    if (originalUrl.includes("/auth/refresh")) {
+    if (originalUrl.includes("/auth/refresh/")) {
       tokenManager.clear();
       return Promise.reject(err);
     }

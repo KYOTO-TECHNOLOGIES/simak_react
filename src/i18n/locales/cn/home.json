@@ -94,11 +94,11 @@
   },
   "howItWorks": {
     "kicker": "运作流程",
-    "title": "从海洋到",
-    "titleHighlight": "您的餐桌",
+    "title": "鲜活海鲜从",
+    "titleHighlight": "大海到家",
     "subtitle": "只需四个简单步骤，即可享用您品尝过最鲜美的海鲜。没有中间商，没有延迟——只有纯粹的新鲜。",
     "cta": "开始购物",
-    "freeDelivery": "订单满 999 迪拉姆免运费",
+    "freeDelivery": "特定订单可享免运费",
     "steps": [
       {
         "title": "浏览与选择",
@@ -178,7 +178,7 @@
       {
         "badge": "免费配送",
         "title": "免运费",
-        "subtitle": "满 999 迪拉姆的所有订单",
+        "subtitle": "特定订单可享",
         "expiry": "本月有效",
         "terms": "适用于标准配送"
       },

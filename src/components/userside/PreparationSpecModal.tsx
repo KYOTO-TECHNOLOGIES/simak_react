@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, ShoppingCart, Zap, Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { ProductDto } from "../../features/admin/products/productApi";
+import type { ProductDto } from "../../features/admin/products/productApi";
 
 interface PreparationSpecModalProps {
     product: ProductDto | null;

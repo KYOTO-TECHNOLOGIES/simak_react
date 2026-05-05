@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Bell, Check, CheckCheck } from 'lucide-react';
+import { Bell, Check, CheckCheck, Trash2 } from 'lucide-react';
 import { adminNotificationApi, type AdminNotificationDto } from './adminNotificationApi';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -131,14 +131,16 @@ const AdminNotificationsDropdown: React.FC = () => {
                                 <h3 className="font-bold text-gray-900 text-sm">Notifications</h3>
                                 <p className="text-xs text-gray-500 mt-0.5">You have {unreadCount} unread messages</p>
                             </div>
-                            {unreadCount > 0 && (
-                                <button
-                                    onClick={handleMarkAllAsRead}
-                                    className="text-xs font-semibold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-2.5 py-1.5 rounded-lg transition-colors flex items-center gap-1.5"
-                                >
-                                    <CheckCheck size={14} /> Mark all read
-                                </button>
-                            )}
+                            <div className="flex items-center gap-2">
+                                {unreadCount > 0 && (
+                                    <button
+                                        onClick={handleMarkAllAsRead}
+                                        className="text-xs font-semibold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-2.5 py-1.5 rounded-lg transition-colors flex items-center gap-1.5"
+                                    >
+                                        <CheckCheck size={14} /> Mark all read
+                                    </button>
+                                )}
+                            </div>
                         </div>
                         <div className="px-5 py-2 border-b border-gray-50 bg-gray-50/30">
                             <div className="inline-flex bg-slate-100/60 p-1 rounded-xl border border-slate-200">
@@ -223,6 +225,21 @@ const AdminNotificationsDropdown: React.FC = () => {
                                                         <Check size={14} />
                                                     </button>
                                                 )}
+                                                <button
+                                                    onClick={async (e) => {
+                                                        e.stopPropagation();
+                                                        try {
+                                                            await adminNotificationApi.delete(notification.id);
+                                                            setNotifications(prev => prev.filter(n => n.id !== notification.id));
+                                                        } catch (error) {
+                                                            console.error("Failed to delete notification", error);
+                                                        }
+                                                    }}
+                                                    className="p-1.5 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-full transition-colors opacity-0 group-hover:opacity-100"
+                                                    title="Delete"
+                                                >
+                                                    <Trash2 size={14} />
+                                                </button>
                                                 </div>
                                             </div>
                                         </div>

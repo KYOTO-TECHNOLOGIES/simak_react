@@ -99,6 +99,14 @@ export const adminNotificationApi = {
         await api.post("/notifications/mark_all_as_read/");
     },
 
+    delete: async (id: number): Promise<void> => {
+        await api.delete(`/notifications/${id}/`);
+    },
+
+    deleteAll: async (): Promise<void> => {
+        await api.delete("/notifications/delete_all/");
+    },
+
     /* ── Templates ── */
     listTemplates: async (): Promise<NotificationTemplateDto[]> => {
         const res = await api.get("/notifications/templates/");

@@ -97,11 +97,11 @@
   },
   "howItWorks": {
     "kicker": "How It Works",
-    "title": "From Ocean to ",
-    "titleHighlight": "Your Plate",
+    "title": "Live Seafood from ",
+    "titleHighlight": "SEA to HOME",
     "subtitle": "Four simple steps to the freshest seafood you've ever tasted. No middlemen, no delays — just pure freshness.",
     "cta": "Start Shopping",
-    "freeDelivery": "Free delivery on orders above AED 999",
+    "freeDelivery": "Free delivery available on selected orders",
     "steps": [
       {
         "title": "Browse & Pick",
@@ -181,7 +181,7 @@
       {
         "badge": "FREE DELIVERY",
         "title": "Free Shipping",
-        "subtitle": "On all orders above AED 999",
+        "subtitle": "available on selected orders",
         "expiry": "This month",
         "terms": "Applicable for standard delivery"
       },

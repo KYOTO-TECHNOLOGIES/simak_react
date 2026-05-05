@@ -203,7 +203,11 @@ const DeliveryDashboard: React.FC = () => {
                       #{order.id}
                     </span>
                     <span className="text-[10px] font-bold tracking-widest uppercase text-gray-400">
-                      RECENT ASSIGNMENT
+                      {order.preferred_delivery_date ? (
+                        <>DELIVERY: {new Date(order.preferred_delivery_date).toLocaleDateString()} {order.preferred_delivery_slot_name ? `· ${order.preferred_delivery_slot_name}` : ""}</>
+                      ) : (
+                        "RECENT ASSIGNMENT"
+                      )}
                     </span>
                   </div>
                   <span
@@ -219,7 +223,10 @@ const DeliveryDashboard: React.FC = () => {
                     <MapPin size={14} className="text-gray-400 group-hover:text-cyan-500 transition-colors" />
                   </div>
                   <p className="text-xs text-gray-500 font-medium leading-relaxed group-hover:text-gray-800 transition-colors">
-                    {order.shipping_address_details?.emirate} · {order.items?.length} item{order.items?.length !== 1 ? "s" : ""}
+                    {order.shipping_address_summary?.emirate?.replace("_", " ") || "No Region"} · AED {parseFloat(order.total_amount).toFixed(2)}
+                    {parseFloat(order.tip_amount) > 0 && (
+                      <span className="ml-2 text-emerald-600 font-bold">+ AED {parseFloat(order.tip_amount).toFixed(2)} Tip</span>
+                    )}
                   </p>
                   <div className="ml-auto w-9 h-9 rounded-2xl bg-gray-50 group-hover:bg-gray-900 group-hover:scale-110 flex items-center justify-center transition-all duration-500 shadow-sm">
                     <ChevronRight size={18} className="text-gray-400 group-hover:text-white transition-colors" />

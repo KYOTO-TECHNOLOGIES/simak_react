@@ -317,7 +317,7 @@ const ProductProfile: React.FC = () => {
     <div dir="ltr" className="min-h-screen bg-white text-stone-800">
       <Helmet>
         <title>{product ? `${product.name} - SIMAK FRESH` : "Product Details - SIMAK FRESH"}</title>
-        <meta name="description" content={product?.description || "Get the freshest seafood and meat delivered to your doorstep."} />
+        <meta name="description" content={product?.description || "Get the freshest seafood and  delivered to your doorstep."} />
         {product?.image && <meta property="og:image" content={product.image} />}
       </Helmet>
 

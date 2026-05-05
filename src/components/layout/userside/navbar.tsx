@@ -71,6 +71,9 @@ const Navbar: React.FC = () => {
                             <Phone size={12} className="text-yellow-400" />
                             +971 545 446 111
                         </span>
+                        <span className="hidden lg:inline-flex items-center text-cyan-300/60 font-bold uppercase tracking-wider text-[9px] border-l border-cyan-800 pl-5 ml-2">
+                            {t('brand.motto')}
+                        </span>
                     </div>
 
                     <div className="flex items-center gap-2">
@@ -114,8 +117,13 @@ const Navbar: React.FC = () => {
                         <BrandLogo size={40} />
                         <div className="flex flex-col justify-center items-center text-center">
                             <span 
-                                className="text-[18px] sm:text-[20px] tracking-tighter uppercase leading-none"
-                                style={{ color: BRAND_COLORS.DARK_CYAN }}
+                                className="text-[20px] sm:text-[22px] uppercase leading-none"
+                                style={{ 
+                                    color: BRAND_COLORS.DARK_CYAN,
+                                    fontFamily: "'SF Pro Display', sans-serif",
+                                    fontWeight: 1000,
+                                    letterSpacing: "-0.01em"
+                                }}
                             >
                                 {t('brand.name')}
                             </span>

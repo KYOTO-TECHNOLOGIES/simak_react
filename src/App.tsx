@@ -5,6 +5,7 @@ import { checkAuth, setReferralMessage } from "./features/auth/authSlice";
 import { AppRoutes } from "./routes/AppRoutes";
 import { useToast } from "./components/ui/Toast";
 import { useInitializeCart } from "./hooks/useInitializeCart";
+import { useNotificationPolling } from "./hooks/useNotificationPolling";
 import { navigateTo } from "./utils/navigate";
 import { rememberErrorReturnPath, reloadErrorReturnPath } from "./utils/errorRedirect";
 
@@ -16,6 +17,7 @@ function App() {
 
   // Initialize cart data on app load for authenticated users
   useInitializeCart();
+  useNotificationPolling();
 
   useEffect(() => {
     dispatch(checkAuth() as any);

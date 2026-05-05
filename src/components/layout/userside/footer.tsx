@@ -124,8 +124,11 @@ const Footer: React.FC = () => {
                                     {t('brand.name')}
                                 </span>
                             </div>
-                            <p className="text-xs text-cyan-200/60 leading-relaxed mb-5 max-w-xs">
+                            <p className="text-xs text-cyan-200/60 leading-relaxed mb-2 max-w-xs">
                                 {t("footer.brandDescription")}
+                            </p>
+                            <p className="text-[10px] font-bold text-yellow-500 uppercase tracking-[0.1em] mb-5">
+                                {t("brand.motto")}
                             </p>
 
                             {/* Contact */}
@@ -138,9 +141,12 @@ const Footer: React.FC = () => {
                                     <Mail size={13} className="text-cyan-300" />
                                     support@simakfresh.ae
                                 </a>
-                                <div className="flex items-center gap-2.5 text-xs hover:text-yellow-400 transition-colors">
-                                    <MapPin size={13} className="text-cyan-300 shrink-0" />
-                                    {t("footer.location")}
+                                <div className="flex items-start gap-2.5 text-xs hover:text-yellow-400 transition-colors">
+                                    <MapPin size={13} className="text-cyan-300 shrink-0 mt-0.5" />
+                                    <div className="flex flex-col gap-1">
+                                        <span>{t("footer.headOffice")}</span>
+                                        <span>{t("footer.branch")}</span>
+                                    </div>
                                 </div>
                                 <div className="flex items-center gap-2.5 text-xs hover:text-yellow-400 transition-colors">
                                     <Clock size={13} className="text-cyan-300" />

@@ -7,7 +7,7 @@ import type { OrderStatus, PaymentStatus } from "./ordersSlice";
 import { useDispatch } from "react-redux";
 import { ordersActions } from "./ordersSlice";
 import { deliveryApi } from "../../delivery/deliveryApi";
-import type { DeliveryBoyUser, DeliveryAssignment, CancellationRequest } from "../../delivery/deliveryApi";
+import type { DeliveryBoyUser, DeliveryAssignment, DeliveryCancelRequest } from "../../delivery/deliveryApi";
 import { useToast } from "../../../components/ui/Toast";
 
 type OrderItem = {
@@ -40,7 +40,7 @@ type ShippingAddress = {
 };
 
 type Payment = {
-  id?: number;
+  id?: number | string;
   transactionId: string;
   amount: number;
   status: string;
@@ -79,7 +79,14 @@ type Order = {
   createdAt: string;
   updatedAt: string;
   deliveryAssignment?: DeliveryAssignment | null;
-  cancellationRequest?: CancellationRequest | null;
+  deliveryProof?: {
+    id: number;
+    proofImage: string;
+    signatureName: string | null;
+    notes: string | null;
+    createdAt: string;
+  } | null;
+  cancellationRequest?: DeliveryCancelRequest | null;
 };
 
 function normalizeOrderStatus(raw: string): OrderStatus {
@@ -221,7 +228,7 @@ const OrderDetailsPage: React.FC = () => {
         const payment: Payment =
           raw.payment
             ? {
-              id: raw.payment.id || raw.payment.payment_id,
+              id: (raw.payment as any).id || (raw.payment as any).payment_id || raw.payment.transaction_id,
               transactionId: raw.payment.transaction_id ?? "",
               amount: parseFloat(raw.payment.amount) || 0,
               status: raw.payment.status ?? "",
@@ -270,7 +277,7 @@ const OrderDetailsPage: React.FC = () => {
               preparationExtraPrice: parseFloat(dto.preparation_extra_price || "") || 0,
               preparationInstructions: dto.preparation_instructions ?? null,
               totalWithPreparation: parseFloat(dto.total_with_preparation || "") || 0,
-              productUnitDisplay: dto.product_unit_display ?? null,
+              productUnitDisplay: (dto as any).unit_name || (dto as any).product_unit_display || null,
             }))
             : [],
           statusHistory,
@@ -279,8 +286,20 @@ const OrderDetailsPage: React.FC = () => {
           paymentMethod: payment?.paymentMethod ?? "N/A",
           createdAt: raw.created_at,
           updatedAt: raw.updated_at,
-          deliveryAssignment: raw.delivery_assignment ?? null,
-          cancellationRequest: raw.cancellation_request ?? null,
+        deliveryAssignment: raw.delivery_assignment ? {
+          ...raw.delivery_assignment,
+          status: raw.delivery_assignment.status as any
+        } : null,
+          deliveryProof: raw.delivery_proof
+            ? {
+                id: raw.delivery_proof.id,
+                proofImage: raw.delivery_proof.proof_image,
+                signatureName: raw.delivery_proof.signature_name,
+                notes: raw.delivery_proof.notes,
+                createdAt: raw.delivery_proof.created_at,
+              }
+            : null,
+          cancellationRequest: raw.delivery_cancel_request ?? (raw as any).cancellation_request ?? null,
         };
         if (active) setOrder(shaped);
       } catch (e: any) {
@@ -328,7 +347,7 @@ const OrderDetailsPage: React.FC = () => {
       } : { id: "", label: "", fullName: "", phoneNumber: "", streetAddress: "", area: "", city: "", emirate: "", country: "", latitude: null, longitude: null };
 
       const payment: Payment = raw.payment ? {
-        id: raw.payment.id || raw.payment.payment_id,
+        id: (raw.payment as any).id || (raw.payment as any).payment_id || raw.payment.transaction_id,
         transactionId: raw.payment.transaction_id ?? "",
         amount: parseFloat(raw.payment.amount) || 0,
         status: raw.payment.status ?? "",
@@ -343,8 +362,20 @@ const OrderDetailsPage: React.FC = () => {
         shippingAddress,
         payment,
         paymentStatus: payment ? normalizePaymentStatus(payment.status) : "Pending",
-        deliveryAssignment: raw.delivery_assignment ?? null,
-        cancellationRequest: raw.cancellation_request ?? null,
+        deliveryAssignment: raw.delivery_assignment ? {
+          ...raw.delivery_assignment,
+          status: raw.delivery_assignment.status as any
+        } : null,
+        deliveryProof: raw.delivery_proof
+            ? {
+                id: raw.delivery_proof.id,
+                proofImage: raw.delivery_proof.proof_image,
+                signatureName: raw.delivery_proof.signature_name,
+                notes: raw.delivery_proof.notes,
+                createdAt: raw.delivery_proof.created_at,
+              }
+            : null,
+        cancellationRequest: raw.delivery_cancel_request ?? (raw as any).cancellation_request ?? null,
         updatedAt: raw.updated_at,
       };
 
@@ -623,8 +654,20 @@ const OrderDetailsPage: React.FC = () => {
                             paymentMethod: payment?.paymentMethod ?? "N/A",
                             createdAt: raw.created_at,
                             updatedAt: raw.updated_at,
-                            deliveryAssignment: raw.delivery_assignment ?? null,
-                            cancellationRequest: raw.cancellation_request ?? null,
+                            deliveryAssignment: raw.delivery_assignment ? {
+                              ...raw.delivery_assignment,
+                              status: raw.delivery_assignment.status as any
+                            } : null,
+                            deliveryProof: raw.delivery_proof
+                              ? {
+                                id: raw.delivery_proof.id,
+                                proofImage: raw.delivery_proof.proof_image,
+                                signatureName: raw.delivery_proof.signature_name,
+                                notes: raw.delivery_proof.notes,
+                                createdAt: raw.delivery_proof.created_at,
+                              }
+                              : null,
+                            cancellationRequest: raw.delivery_cancel_request ?? (raw as any).cancellation_request ?? null,
                           };
                           setOrder(shaped);
                           dispatch(ordersActions.updateStatusSuccess(shaped));
@@ -872,17 +915,79 @@ const OrderDetailsPage: React.FC = () => {
 
                 {/* Current assignment */}
                 {order.deliveryAssignment ? (
-                  <div className="flex items-start gap-3 p-3 bg-indigo-50 border border-indigo-100 rounded-xl">
-                    <UserCheck size={16} className="text-indigo-600 mt-0.5 shrink-0" />
-                    <div>
-                      <p className="text-xs font-bold text-indigo-700">{order.deliveryAssignment.delivery_boy_name}</p>
-                      <p className="text-[10px] text-indigo-500 mt-0.5">
-                        Status: <span className="font-bold">{order.deliveryAssignment.status}</span>
-                        {order.deliveryAssignment.assigned_at && (
-                          <> · assigned {new Date(order.deliveryAssignment.assigned_at).toLocaleDateString("en-IN", { day: "2-digit", month: "short" })}</>
-                        )}
-                      </p>
+                  <div className="space-y-4">
+                    <div className="flex items-start justify-between p-3 bg-indigo-50 border border-indigo-100 rounded-xl">
+                      <div className="flex items-start gap-3">
+                        <UserCheck size={16} className="text-indigo-600 mt-0.5 shrink-0" />
+                        <div>
+                          <p className="text-xs font-bold text-indigo-700">{order.deliveryAssignment.delivery_boy_name}</p>
+                          <p className="text-[10px] text-indigo-500 mt-0.5">
+                            Status: <span className="font-bold">{order.deliveryAssignment.status}</span>
+                            {order.deliveryAssignment.assigned_at && (
+                              <> · assigned {new Date(order.deliveryAssignment.assigned_at).toLocaleDateString("en-IN", { day: "2-digit", month: "short" })}</>
+                            )}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => navigate(`/admin/delivery/boys/${order.deliveryAssignment?.delivery_boy}`)}
+                        className="text-[10px] font-bold px-2 py-1 rounded-full border border-indigo-200 bg-white text-indigo-600 hover:bg-indigo-600 hover:text-white transition-all shadow-sm"
+                        title="View delivery boy profile"
+                      >
+                        View Profile
+                      </button>
                     </div>
+
+                    {/* Additional Details */}
+                    <div className="grid grid-cols-2 gap-3 px-1">
+                      {order.deliveryAssignment.accepted_at && (
+                        <div className="space-y-0.5">
+                          <p className="text-[9px] font-bold text-[#A1A1AA] uppercase">Accepted At</p>
+                          <p className="text-[10px] font-medium">{new Date(order.deliveryAssignment.accepted_at).toLocaleString("en-IN", { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>
+                        </div>
+                      )}
+                      {order.deliveryAssignment.delivered_at && (
+                        <div className="space-y-0.5">
+                          <p className="text-[9px] font-bold text-[#A1A1AA] uppercase">Delivered At</p>
+                          <p className="text-[10px] font-medium">{new Date(order.deliveryAssignment.delivered_at).toLocaleString("en-IN", { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Delivery Proof */}
+                    {order.deliveryProof && (
+                      <div className="mt-4 p-3 border border-[#EEEEEE] rounded-xl bg-slate-50 space-y-3">
+                        <h5 className="text-[10px] font-bold uppercase tracking-widest text-[#A1A1AA]">Proof of Delivery</h5>
+                        <div className="aspect-video w-full rounded-lg overflow-hidden bg-white border border-[#EEEEEE] relative group">
+                          <img 
+                            src={order.deliveryProof.proofImage} 
+                            alt="Delivery Proof" 
+                            className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform" 
+                            onClick={() => window.open(order.deliveryProof?.proofImage, '_blank')}
+                          />
+                          <a 
+                            href={order.deliveryProof.proofImage} 
+                            target="_blank" 
+                            rel="noreferrer"
+                            className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-[10px] font-bold transition-opacity"
+                          >
+                            Open Original Image
+                          </a>
+                        </div>
+                        {order.deliveryProof.signatureName && (
+                          <div className="flex justify-between items-center px-1">
+                            <span className="text-[10px] text-gray-400">Recipient Signature</span>
+                            <span className="text-[11px] font-black">{order.deliveryProof.signatureName}</span>
+                          </div>
+                        )}
+                        {order.deliveryProof.notes && (
+                          <div className="px-1 pt-1 border-t border-slate-200">
+                            <p className="text-[9px] text-gray-400 font-bold uppercase mb-0.5">Delivery Notes</p>
+                            <p className="text-[10px] text-gray-600 italic">"{order.deliveryProof.notes}"</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <p className="text-[11px] text-[#A1A1AA] italic">No delivery boy assigned yet.</p>
@@ -890,63 +995,85 @@ const OrderDetailsPage: React.FC = () => {
 
                 {/* Cancellation request banner */}
                 {order.cancellationRequest && (
-                  <div className={`p-3 rounded-xl border text-xs font-medium ${order.cancellationRequest.status === "PENDING"
+                  <div className={`p-4 rounded-2xl border text-xs font-medium space-y-2 ${order.cancellationRequest.status === "PENDING"
                       ? "bg-amber-50 border-amber-200 text-amber-700"
                       : order.cancellationRequest.status === "APPROVED"
                         ? "bg-rose-50 border-rose-200 text-rose-700"
                         : "bg-gray-50 border-gray-200 text-gray-600"
                     }`}>
-                    <p className="font-bold">
-                      Cancellation Request — {order.cancellationRequest.status}
-                    </p>
-                    <p className="text-[10px] mt-1 opacity-80">{order.cancellationRequest.reason}</p>
+                    <div className="flex justify-between items-start">
+                      <p className="font-black uppercase tracking-tight">
+                        Cancellation {order.cancellationRequest.status}
+                      </p>
+                      <span className="text-[9px] opacity-60">
+                        REQ: {new Date(order.cancellationRequest.requested_at).toLocaleString()}
+                      </span>
+                    </div>
+                    
+                    <div className="bg-white/50 rounded-xl p-2 border border-black/5">
+                      <p className="text-[10px] font-bold opacity-60 uppercase mb-1 text-black/40">Reason</p>
+                      <p className="text-[11px] leading-relaxed italic">"{order.cancellationRequest.reason}"</p>
+                    </div>
+
                     {order.cancellationRequest.review_notes && (
-                      <p className="text-[10px] mt-0.5 opacity-70">Notes: {order.cancellationRequest.review_notes}</p>
+                      <div className="bg-white/30 rounded-xl p-2 border border-black/5">
+                        <p className="text-[10px] font-bold opacity-60 uppercase mb-1 text-black/40">Admin Review Notes</p>
+                        <p className="text-[11px] leading-relaxed">{order.cancellationRequest.review_notes}</p>
+                        {order.cancellationRequest.reviewed_at && (
+                          <p className="text-[9px] mt-2 opacity-50 font-bold">
+                            Reviewed on {new Date(order.cancellationRequest.reviewed_at).toLocaleString()}
+                          </p>
+                        )}
+                      </div>
                     )}
-                    <a
-                      href="/admin/delivery/cancellations"
-                      onClick={(e) => { e.preventDefault(); navigate("/admin/delivery/cancellations"); }}
-                      className="inline-block mt-2 text-[10px] font-bold underline underline-offset-2"
-                    >
-                      View in Cancellations
-                    </a>
+
+                    <div className="pt-2 flex justify-end">
+                      <button
+                        onClick={() => navigate("/admin/delivery/cancellations")}
+                        className="px-3 py-1.5 bg-black/5 hover:bg-black/10 rounded-lg text-[10px] font-black uppercase tracking-widest transition-colors"
+                      >
+                        View in Cancellations
+                      </button>
+                    </div>
                   </div>
                 )}
 
-                {/* Assign / Reassign */}
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-[#A1A1AA] uppercase tracking-wide block">
-                    {order.deliveryAssignment ? "Reassign" : "Assign"} delivery boy
-                  </label>
-                  <select
-                    value={selectedBoyId}
-                    onChange={(e) => setSelectedBoyId(e.target.value === "" ? "" : Number(e.target.value))}
-                    className="w-full text-xs border border-[#EEEEEE] rounded-lg px-3 py-2 bg-white outline-none focus:border-gray-300 focus:ring-1 focus:ring-gray-100"
-                  >
-                    <option value="">— Select a delivery boy —</option>
-                    {deliveryBoys.map((boy) => (
-                      <option key={boy.id} value={boy.id}>
-                        {boy.full_name || `${boy.first_name} ${boy.last_name}`.trim()} {boy.delivery_profile?.assigned_emirates_display?.length ? `(${boy.delivery_profile.assigned_emirates_display.join(", ")})` : ""}
-                      </option>
-                    ))}
-                  </select>
-                  {deliveryBoysError && (
-                    <p className="text-[11px] text-rose-600 font-medium">{deliveryBoysError}</p>
-                  )}
-                  <button
-                    onClick={handleAssign}
-                    disabled={!selectedBoyId || assigning}
-                    className="w-full py-2 bg-black text-white text-xs font-bold rounded-lg hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
-                  >
-                    <Truck size={12} />
-                    {assigning ? "Assigning…" : "Assign"}
-                  </button>
-                  {assignMsg && (
-                    <p className={`text-[11px] font-medium ${assignMsg.type === "ok" ? "text-emerald-600" : "text-rose-600"}`}>
-                      {assignMsg.text}
-                    </p>
-                  )}
-                </div>
+                {/* Assign / Reassign - Only show if not delivered */}
+                {order.status !== "DELIVERED" && (
+                  <div className="space-y-2 pt-2 border-t border-[#EEEEEE]">
+                    <label className="text-[10px] font-bold text-[#A1A1AA] uppercase tracking-wide block">
+                      {order.deliveryAssignment ? "Change delivery boy" : "Assign delivery boy"}
+                    </label>
+                    <select
+                      value={selectedBoyId}
+                      onChange={(e) => setSelectedBoyId(e.target.value === "" ? "" : Number(e.target.value))}
+                      className="w-full text-xs border border-[#EEEEEE] rounded-lg px-3 py-2 bg-white outline-none focus:border-gray-300 focus:ring-1 focus:ring-gray-100"
+                    >
+                      <option value="">— Select a delivery boy —</option>
+                      {deliveryBoys.map((boy) => (
+                        <option key={boy.id} value={boy.id}>
+                          {boy.full_name || `${boy.first_name} ${boy.last_name}`.trim()} {boy.delivery_profile?.assigned_emirates_display?.length ? `(${boy.delivery_profile.assigned_emirates_display.join(", ")})` : ""}
+                        </option>
+                      ))}
+                    </select>
+                    {deliveryBoysError && (
+                      <p className="text-[11px] text-rose-600 font-medium">{deliveryBoysError}</p>
+                    )}
+                    <button
+                      onClick={handleAssign}
+                      disabled={!selectedBoyId || assigning}
+                      className="w-full py-2 bg-black text-white text-xs font-bold rounded-lg hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
+                    >
+                      <Truck size={12} />
+                      {assigning ? "Assigning…" : order.deliveryAssignment ? "Change Boy" : "Assign"}
+                    </button>
+                    {assignMsg && (
+                      <p className={`text-[11px] font-medium ${assignMsg.type === "ok" ? "text-emerald-600" : "text-rose-600"}`}>
+                        {assignMsg.text}
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>

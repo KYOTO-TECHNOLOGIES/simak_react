@@ -26,10 +26,10 @@ const TermsOfServicePage: React.FC = () => {
 
         <h2 className="mt-10 text-2xl font-bold text-slate-900">2. Pricing and Payment</h2>
         <ul className="mt-4 space-y-3 text-slate-600">
-          <li className="flex gap-3 leading-7">
+          {/* <li className="flex gap-3 leading-7">
             <span className="mt-2 h-2 w-2 rounded-full bg-cyan-600 shrink-0" />
             <span><strong>Currency &amp; Tax:</strong> All prices are in AED and inclusive of 5% VAT. Prices are subject to change without prior notice.</span>
-          </li>
+          </li> */}
           <li className="flex gap-3 leading-7">
             <span className="mt-2 h-2 w-2 rounded-full bg-cyan-600 shrink-0" />
             <span><strong>Payments:</strong> We accept Credit/Debit cards, Apple Pay, and Cash on Delivery (COD).</span>

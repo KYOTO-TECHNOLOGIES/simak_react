@@ -41,7 +41,7 @@ export const BrandSignature = ({
       : "none",
     WebkitBackgroundClip: isWow ? "text" : "none",
     backgroundClip: isWow ? "text" : "none",
-    filter: "drop-shadow(0 0 8px rgba(4, 188, 177, 0.4)) drop-shadow(0 1px 2px rgba(0,0,0,0.5))",
+    // filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.5))",
   };
 
   const finalClassName = `${className} ${isWow ? 'animate-text-shimmer' : ''}`.trim();

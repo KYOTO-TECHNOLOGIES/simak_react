@@ -8,7 +8,8 @@
   "brand": {
     "name": "SIMAK FRESH",
     "signature": "Signature of Quality",
-    "subtitle": "Online Fish Market"
+    "subtitle": "Online Fish Market",
+    "motto": "Live Seafood from SEA to HOME"
   },
   "location": {
     "deliverTo": "Deliver to",
@@ -76,9 +77,10 @@
       "placeholder": "Enter your email",
       "subscribe": "Subscribe"
     },
-    "brandDescription": "Since 2016, SIMAK FRESH has grown from Dubai roots into a trusted seafood partner across import, export, farming, retail, and wholesale.",
-    "location": "Sharjah Media City, Sharjah, UAE",
-    "timing": "6 AM – 9 PM, Mon–Sun",
+    "brandDescription": "SIMAK FRESH is your premium online destination for the freshest seafood. We deliver high-quality, live and fresh catch directly from the ocean to your home, ensuring the best quality for every meal.",
+    "headOffice": "Head office: Sharjah Media City, Sharjah, UAE",
+    "branch": "Branch: Mushrif Mall - Abu Dhabi, UAE",
+    "timing": "8 AM – 8 PM, Mon–Sun",
     "shop": "Shop",
     "company": "Company",
     "support": "Support",

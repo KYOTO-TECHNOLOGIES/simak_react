@@ -33,18 +33,30 @@ export interface DeliveryProof {
 }
 
 /* ── Cancellation Request ── */
-export interface CancellationRequest {
+export interface DeliveryCancelRequest {
   id: number;
-  order: number;
-  requested_by: number;
-  requested_by_name: string;
   reason: string;
-  status: "PENDING" | "APPROVED" | "REJECTED";
-  reviewed_by: number | null;
-  reviewed_by_name: string | null;
+  status: string;
   review_notes: string | null;
   requested_at: string;
   reviewed_at: string | null;
+}
+
+/* ── Status History ── */
+export interface OrderStatusHistory {
+  status: string;
+  notes: string | null;
+  created_at: string;
+}
+
+/* ── Order Payment ── */
+export interface OrderPayment {
+  transaction_id: string | null;
+  amount: string;
+  status: string;
+  payment_method: string;
+  receipt: string | null;
+  created_at: string;
 }
 
 /* ── Delivery Order (simplified) ── */
@@ -68,12 +80,31 @@ export interface DeliveryOrder {
     id: number;
     product_name: string;
     product_image: string | null;
+    unit_name: string | null;
     quantity: number;
     price: string;
+    subtotal: string;
+    preparation_details?: {
+      name: string;
+      price: string;
+    } | null;
+    preparation_instructions: string;
   }>;
+  tip_amount: string;
+  delivery_notes: string | null;
+  preferred_delivery_date: string | null;
+  preferred_delivery_slot: number | null;
+  preferred_delivery_slot_name?: string | null;
+  preferred_delivery_slot_details: {
+    name: string;
+    start_time_display: string;
+    end_time_display: string;
+  } | null;
   delivery_assignment: DeliveryAssignment | null;
   delivery_proof: DeliveryProof | null;
-  cancellation_request: CancellationRequest | null;
+  delivery_cancel_request: DeliveryCancelRequest | null;
+  status_history: OrderStatusHistory[];
+  payment: OrderPayment | null;
 }
 
 /* ── Dashboard delivery boy summary ── */
@@ -83,6 +114,38 @@ export interface DeliveryBoyInfo {
   is_available: boolean;
   assigned_emirates: string[];
   assigned_emirates_display: string[];
+}
+
+/* ── Delivery Summary Order (for lists) ── */
+export interface DeliverySummaryOrder {
+  id: number;
+  status: string;
+  total_amount: string;
+  tip_amount: string;
+  delivery_charge: string;
+  preferred_delivery_date: string | null;
+  preferred_delivery_slot: number | null;
+  preferred_delivery_slot_name?: string | null;
+  created_at: string;
+  updated_at: string;
+  customer_name?: string | null;
+  customer_email?: string | null;
+  customer_phone?: string | null;
+  shipping_address_summary: {
+    emirate: string;
+    area: string | null;
+    street_address: string;
+    building_name?: string | null;
+    flat_villa_number?: string | null;
+  };
+  delivery_assignment_status?: string | null;
+  cancel_request_status?: string | null;
+  delivery_assignment?: {
+    status: string;
+  } | null;
+  delivery_cancel_request?: {
+    status: string;
+  } | null;
 }
 
 /* ── Dashboard KPI ── */
@@ -95,7 +158,7 @@ export interface DeliveryDashboardData {
     available_orders_in_region: number;
     completed_total: number;
   };
-  recent_assigned_orders: DeliveryOrder[];
+  recent_assigned_orders: DeliverySummaryOrder[];
 }
 
 /* ── Delivery Boy User (admin list) ── */
@@ -123,15 +186,27 @@ export const deliveryApi = {
   },
 
   /** GET /orders/available_orders/ */
-  getAvailableOrders: async (): Promise<DeliveryOrder[]> => {
-    const res = await api.get<DeliveryOrder[]>("/orders/available_orders/");
-    return res.data;
+  getAvailableOrders: async (params?: { limit?: number; offset?: number }): Promise<{ results: DeliverySummaryOrder[]; count: number }> => {
+    const res = await api.get<DeliverySummaryOrder[] | { results: DeliverySummaryOrder[]; count: number }>("/orders/available_orders/", { params });
+    if (Array.isArray(res.data)) {
+      return { results: res.data, count: res.data.length };
+    }
+    return {
+      results: res.data.results ?? [],
+      count: res.data.count ?? 0
+    };
   },
 
   /** GET /orders/ (delivery boy sees their assigned orders) */
-  getMyOrders: async (): Promise<{ results: DeliveryOrder[]; count: number }> => {
-    const res = await api.get<{ results: DeliveryOrder[]; count: number }>("/orders/");
-    return res.data;
+  getMyOrders: async (params?: { limit?: number; offset?: number; status?: string }): Promise<{ results: DeliverySummaryOrder[]; count: number }> => {
+    const res = await api.get<DeliverySummaryOrder[] | { results: DeliverySummaryOrder[]; count: number }>("/orders/", { params });
+    if (Array.isArray(res.data)) {
+      return { results: res.data, count: res.data.length };
+    }
+    return {
+      results: res.data.results ?? [],
+      count: res.data.count ?? 0
+    };
   },
 
   /** GET /orders/:id/ */

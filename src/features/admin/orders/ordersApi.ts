@@ -95,6 +95,37 @@ export interface OrderCountsDto {
     cancelled: number;
 }
 
+/* --- Delivery Assignment DTO --- */
+export interface DeliveryAssignmentDto {
+    id: number;
+    delivery_boy: number;
+    delivery_boy_name: string;
+    status: string;
+    assigned_at: string;
+    accepted_at: string | null;
+    delivered_at: string | null;
+    notes: string | null;
+}
+
+/* --- Delivery Proof DTO --- */
+export interface DeliveryProofDto {
+    id: number;
+    proof_image: string;
+    signature_name: string | null;
+    notes: string | null;
+    created_at: string;
+}
+
+/* --- Delivery Cancel Request DTO --- */
+export interface DeliveryCancelRequestDto {
+    id: number;
+    reason: string;
+    status: string;
+    review_notes: string | null;
+    requested_at: string;
+    reviewed_at: string | null;
+}
+
 /* --- Order DTO from backend --- */
 export interface OrderDto {
     id: number;
@@ -114,8 +145,9 @@ export interface OrderDto {
     payment: PaymentDto | null;
     created_at: string;
     updated_at: string;
-    delivery_assignment?: any | null;
-    cancellation_request?: any | null;
+    delivery_assignment?: DeliveryAssignmentDto | null;
+    delivery_proof?: DeliveryProofDto | null;
+    delivery_cancel_request?: DeliveryCancelRequestDto | null;
     preferred_delivery_slot_details?: DeliverySlotDto;
 }
 
@@ -152,6 +184,8 @@ export type OrdersQuery = {
     deliverySlot?: string | number;
     paymentMethod?: string;
     transactionId?: string;
+    delivery_boy?: string | number;
+    delivery_assignment__delivery_boy?: string | number;
 };
 
 export interface ValidateCouponRequest {
@@ -393,5 +427,32 @@ export const ordersApi = {
 
     deleteOverride: async (id: number): Promise<void> => {
         await api.delete(`/orders/delivery-slot-overrides/${id}/`);
+    },
+
+    /* ── Delivery Cancellation Requests (Admin) ── */
+    listCancellationRequests: async (params?: any): Promise<any[]> => {
+        const res = await api.get<{ results: any[] }>("/orders/cancel-requests/", { params });
+        // Handle both direct array and paginated results
+        return Array.isArray(res.data) ? res.data : res.data.results || [];
+    },
+
+    getCancellationRequest: async (id: number): Promise<any> => {
+        const res = await api.get<any>(`/orders/cancel-requests/${id}/`);
+        return res.data;
+    },
+
+    reviewCancellationRequest: async (
+        orderId: number,
+        decision: "approve" | "reject",
+        reviewNotes?: string
+    ): Promise<{ message: string }> => {
+        const res = await api.post<{ message: string }>(
+            `/orders/${orderId}/admin_review_cancel_request/`,
+            {
+                decision,
+                review_notes: reviewNotes,
+            }
+        );
+        return res.data;
     },
 };

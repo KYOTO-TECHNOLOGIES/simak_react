@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import {
     Plus, Trash2, Edit2, Save, X, Loader2, Send, FileText, Radio,
-    Mail, Users, Globe, Image, Camera
+    Mail, Users, Globe, Image, Camera, Bell, CheckCheck, Check
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -13,7 +13,7 @@ import {
 } from "./adminNotificationApi";
 import { normalizeMediaUrl } from "../../../utils/media";
 
-type Tab = "templates" | "broadcasts";
+type Tab = "templates" | "broadcasts" | "system";
 
 /* ═══════════════════════════════════════════════
    Main Page
@@ -27,13 +27,13 @@ const AdminNotificationsPage: React.FC = () => {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-3xl font-black text-slate-900 tracking-tight">Notifications</h1>
-                    <p className="text-slate-500 mt-1">Manage templates and send broadcasts to your users</p>
+                    <p className="text-slate-500 mt-1">Manage alerts, templates and broadcasts</p>
                 </div>
             </div>
 
             {/* Tabs */}
             <div className="flex gap-1 p-1 bg-slate-100 rounded-xl w-fit">
-                {(["templates", "broadcasts"] as Tab[]).map((t) => (
+                {(["templates", "broadcasts", "system"] as Tab[]).map((t) => (
                     <button
                         key={t}
                         onClick={() => setTab(t)}
@@ -42,14 +42,14 @@ const AdminNotificationsPage: React.FC = () => {
                             : "text-slate-500 hover:text-slate-700"
                             }`}
                     >
-                        {t === "templates" ? <FileText size={16} /> : <Radio size={16} />}
-                        {t === "templates" ? "Templates" : "Broadcasts"}
+                        {t === "templates" ? <FileText size={16} /> : t === "broadcasts" ? <Radio size={16} /> : <Bell size={16} />}
+                        {t === "templates" ? "Templates" : t === "broadcasts" ? "Broadcasts" : "System Alerts"}
                     </button>
                 ))}
             </div>
 
             {/* Content */}
-            {tab === "templates" ? <TemplatesSection /> : <BroadcastsSection />}
+            {tab === "templates" ? <TemplatesSection /> : tab === "broadcasts" ? <BroadcastsSection /> : <SystemAlertsSection />}
         </div>
     );
 };
@@ -670,5 +670,122 @@ if (!document.getElementById("admin-notif-styles")) {
     style.id = "admin-notif-styles";
     document.head.appendChild(style);
 }
+
+/* ═══════════════════════════════════════════════
+   System Alerts Section
+   ═══════════════════════════════════════════════ */
+const SystemAlertsSection: React.FC = () => {
+    const [notifications, setNotifications] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [filter, setFilter] = useState<'all' | 'unread' | 'read'>('all');
+
+    const fetch = useCallback(async () => {
+        setLoading(true);
+        try {
+            const is_read = filter === 'unread' ? false : filter === 'read' ? true : null;
+            const data = await adminNotificationApi.listPaged({ is_read, limit: 100 });
+            setNotifications(data.results);
+        } catch { /* empty */ }
+        finally { setLoading(false); }
+    }, [filter]);
+
+    useEffect(() => { fetch(); }, [fetch]);
+
+    const handleMarkAsRead = async (id: number) => {
+        try {
+            await adminNotificationApi.markAsRead(id);
+            setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, is_read: true } : n)));
+        } catch { /* ignore */ }
+    };
+
+    const handleMarkAllAsRead = async () => {
+        try {
+            await adminNotificationApi.markAllAsRead();
+            setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+        } catch { /* ignore */ }
+    };
+
+    const handleDelete = async (id: number) => {
+        if (!window.confirm("Delete this alert?")) return;
+        try {
+            await adminNotificationApi.delete(id);
+            setNotifications((prev) => prev.filter((n) => n.id !== id));
+        } catch { /* ignore */ }
+    };
+
+
+    return (
+        <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex gap-1 p-1 bg-slate-100 rounded-xl w-fit">
+                    {(['all', 'unread', 'read'] as const).map((f) => (
+                        <button
+                            key={f}
+                            onClick={() => setFilter(f)}
+                            className={`px-4 py-1.5 rounded-lg text-xs font-bold capitalize transition-all ${filter === f ? "bg-white shadow-sm text-slate-900" : "text-slate-500 hover:text-slate-700"}`}
+                        >
+                            {f}
+                        </button>
+                    ))}
+                </div>
+                <div className="flex items-center gap-2">
+                    {notifications.length > 0 && (
+                        <button
+                            onClick={handleMarkAllAsRead}
+                            className="flex items-center gap-2 px-4 py-2 text-blue-600 bg-blue-50 rounded-xl text-xs font-bold hover:bg-blue-100 transition-all"
+                        >
+                            <CheckCheck size={14} /> Mark all read
+                        </button>
+                    )}
+                </div>
+            </div>
+
+            {loading ? (
+                <LoadingState message="Fetching system alerts…" />
+            ) : notifications.length === 0 ? (
+                <EmptyState icon={<Bell size={40} className="text-slate-300" />} title="Clean Slate" subtitle="No system alerts found." />
+            ) : (
+                <div className="space-y-3">
+                    <AnimatePresence>
+                        {notifications.map((n) => (
+                            <motion.div
+                                key={n.id}
+                                layout
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, x: 20 }}
+                                className={`flex items-center gap-4 p-4 bg-white border border-slate-100 rounded-2xl group transition-all ${!n.is_read ? "border-blue-100 bg-blue-50/10 shadow-sm" : ""}`}
+                            >
+                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${!n.is_read ? "bg-blue-50 text-blue-500" : "bg-slate-50 text-slate-400"}`}>
+                                    <Bell size={18} />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2">
+                                        <h4 className={`text-sm tracking-tight ${!n.is_read ? "font-bold text-slate-900" : "font-medium text-slate-600"}`}>{n.title}</h4>
+                                        {!n.is_read && <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />}
+                                    </div>
+                                    <p className="text-xs text-slate-400 line-clamp-1">{n.message}</p>
+                                    <span className="text-[10px] font-bold text-slate-300 uppercase tracking-wider mt-1 block">
+                                        {new Date(n.created_at).toLocaleString("en-AE", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+                                    </span>
+                                </div>
+                                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    {!n.is_read && (
+                                        <button onClick={() => handleMarkAsRead(n.id)} className="p-2 hover:bg-blue-50 text-blue-400 hover:text-blue-600 rounded-lg transition-all" title="Mark as read">
+                                            <Check size={16} />
+                                        </button>
+                                    )}
+                                    <button onClick={() => handleDelete(n.id)} className="p-2 hover:bg-rose-50 text-rose-400 hover:text-rose-600 rounded-lg transition-all" title="Delete alert">
+                                        <Trash2 size={16} />
+                                    </button>
+                                </div>
+                            </motion.div>
+                        ))}
+                    </AnimatePresence>
+                </div>
+            )}
+        </div>
+    );
+};
 
 export default AdminNotificationsPage;

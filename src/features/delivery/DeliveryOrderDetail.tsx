@@ -6,6 +6,8 @@ import {
   AlertCircle,
   RefreshCw,
   Image as ImageIcon,
+  Copy,
+  Check,
 } from "lucide-react";
 import { deliveryApi, type DeliveryOrder } from "./deliveryApi";
 
@@ -198,9 +200,31 @@ const DeliveryOrderDetail: React.FC = () => {
   const [showProofModal, setShowProofModal] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
 
+  const [copied, setCopied] = useState(false);
+
   const showToast = (type: "success" | "error", msg: string) => {
     setToast({ type, msg });
     setTimeout(() => setToast(null), 3500);
+  };
+
+  const handleCopy = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleClaim = async () => {
+    if (!id) return;
+    setActionLoading(true);
+    try {
+      await deliveryApi.claimOrder(Number(id));
+      showToast("success", "Order claimed successfully!");
+      loadOrder();
+    } catch (e: any) {
+      showToast("error", e?.response?.data?.detail || e?.message || "Failed to claim order");
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   const loadOrder = async () => {
@@ -294,14 +318,16 @@ const DeliveryOrderDetail: React.FC = () => {
   }
 
   const addr = order.shipping_address_details;
-  const assignment = order.delivery_assignment;
-  const cancelReq = order.cancellation_request;
+  const assignment = order.delivery_assignment && (order.delivery_assignment as any).id ? order.delivery_assignment : null;
+  const cancelReq = order.delivery_cancel_request;
   const hasProof = !!order.delivery_proof;
-  const canShip = ["PAID", "PROCESSING"].includes(order.status) && assignment?.status !== "IN_TRANSIT";
+  const canClaim = !assignment;
+  const canShip = assignment && ["PAID", "PROCESSING"].includes(order.status) && (assignment as any).status !== "IN_TRANSIT";
   const canDeliver = order.status === "SHIPPED";
   const canRequestCancel =
-    !["DELIVERED", "CANCELLED"].includes(order.status) &&
-    cancelReq?.status !== "PENDING";
+    ["SHIPPED", "DELIVERED"].includes(order.status) &&
+    cancelReq?.status !== "PENDING" &&
+    order.status !== "CANCELLED";
 
   return (
     <>
@@ -374,8 +400,61 @@ const DeliveryOrderDetail: React.FC = () => {
               <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Settlement</p>
               <p className="text-xs font-bold text-gray-900 uppercase">AED {order.total_amount}</p>
             </div>
+            {order.preferred_delivery_date && (
+              <div>
+                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Scheduled Window</p>
+                <p className="text-xs font-bold text-gray-900 uppercase">
+                  {new Date(order.preferred_delivery_date).toLocaleDateString()}
+                  {order.preferred_delivery_slot_details ? (
+                    <> · {order.preferred_delivery_slot_details.start_time_display} - {order.preferred_delivery_slot_details.end_time_display}</>
+                  ) : order.preferred_delivery_slot_name ? (
+                    <> · {order.preferred_delivery_slot_name}</>
+                  ) : null}
+                </p>
+              </div>
+            )}
           </div>
         </div>
+
+        {/* Cancellation status */}
+        {cancelReq && (
+          <div className={`p-10 border-l border-r border-b border-gray-100 ${
+            cancelReq.status === "PENDING" ? "bg-amber-50" : 
+            cancelReq.status === "APPROVED" ? "bg-rose-50" : "bg-gray-50"
+          }`}>
+            <div className="flex justify-between items-start mb-6">
+              <h2 className={`text-[10px] font-black uppercase tracking-[0.4em] ${
+                cancelReq.status === "PENDING" ? "text-amber-600" : 
+                cancelReq.status === "APPROVED" ? "text-rose-600" : "text-gray-400"
+              }`}>
+                Cancellation Task Phase / {cancelReq.status}
+              </h2>
+              <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">
+                {new Date(cancelReq.requested_at).toLocaleDateString()}
+              </span>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Reason for Abort</p>
+                <p className="text-sm font-bold text-gray-900 uppercase tracking-tighter italic">"{cancelReq.reason}"</p>
+              </div>
+
+              {cancelReq.review_notes && (
+                <div className="pt-4 border-t border-black/5">
+                  <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">HQ Review Notes</p>
+                  <p className="text-sm font-bold text-gray-900 uppercase tracking-tighter">{cancelReq.review_notes}</p>
+                </div>
+              )}
+
+              {cancelReq.status === "PENDING" && (
+                <p className="text-[9px] font-black text-amber-600 uppercase tracking-widest pt-2">
+                  Waiting for HQ Authorization
+                </p>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Info Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-0 border-l border-r border-b border-gray-100">
@@ -390,24 +469,39 @@ const DeliveryOrderDetail: React.FC = () => {
             <p className="text-xs font-bold text-gray-500 leading-relaxed uppercase max-w-xs">
               {addr.street_address}, {addr.area}, {addr.city}, {addr.emirate}
             </p>
-            <div className="mt-10 flex flex-col gap-2">
+            {order.delivery_notes && (
+              <div className="mt-6 p-4 bg-gray-50 border-l-2 border-black">
+                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Entry Protocol / Notes</p>
+                <p className="text-xs font-bold text-gray-900 leading-relaxed">{order.delivery_notes}</p>
+              </div>
+            )}
+            <div className="mt-10 flex flex-col sm:flex-row gap-2">
               <a
                 href={`tel:${addr.phone_number}`}
-                className="w-full py-4 border border-black text-center text-[9px] font-black tracking-[0.3em] uppercase hover:bg-black hover:text-white transition-all"
+                className="flex-1 py-4 border border-black text-center text-[9px] font-black tracking-[0.3em] uppercase hover:bg-black hover:text-white transition-all"
               >
                 CALL CUSTOMER
               </a>
-              {addr.latitude && (
+              <button
+                onClick={() => handleCopy(addr.phone_number)}
+                className="flex-1 py-4 border border-black text-center text-[9px] font-black tracking-[0.3em] uppercase hover:bg-black hover:text-white transition-all flex items-center justify-center gap-2"
+              >
+                {copied ? <Check size={12} /> : <Copy size={12} />}
+                {copied ? "COPIED" : "COPY NUMBER"}
+              </button>
+            </div>
+            {addr.latitude && (
+              <div className="mt-2">
                 <a
                   href={`https://www.google.com/maps/dir/?api=1&destination=${addr.latitude},${addr.longitude}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full py-4 border border-black text-center text-[9px] font-black tracking-[0.3em] uppercase hover:bg-black hover:text-white transition-all"
+                  className="block w-full py-4 border border-black text-center text-[9px] font-black tracking-[0.3em] uppercase hover:bg-black hover:text-white transition-all"
                 >
                   MAP NAVIGATION
                 </a>
-              )}
-            </div>
+              </div>
+            )}
           </div>
 
           {/* Logistics Tracking */}
@@ -433,26 +527,186 @@ const DeliveryOrderDetail: React.FC = () => {
           <h2 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mb-10">
             Shipment Manifest
           </h2>
-          <div className="space-y-8">
+          <div className="space-y-10">
             {order.items?.map((item) => (
-              <div key={item.id} className="flex justify-between items-center group/item">
-                <div>
-                  <p className="text-sm font-black text-gray-900 uppercase tracking-tighter mb-1">{item.product_name}</p>
-                  <p className="text-[9px] font-black tracking-[0.2em] text-gray-400 uppercase">
-                    UNIT COST / AED {item.price}
-                  </p>
+              <div key={item.id} className="space-y-4 group/item">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="text-base font-black text-gray-900 uppercase tracking-tighter mb-1">{item.product_name}</p>
+                    <p className="text-[9px] font-black tracking-[0.2em] text-gray-400 uppercase">
+                      {item.unit_name ? `${item.unit_name} / ` : ""}AED {item.price}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs font-black text-gray-900 uppercase">QTY {item.quantity}</p>
+                    <p className="text-[9px] font-black tracking-[0.2em] text-gray-400 uppercase">SUBTOTAL AED {item.subtotal}</p>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-xs font-black text-gray-900 uppercase">QTY {item.quantity}</p>
-                  <p className="text-[9px] font-black tracking-[0.2em] text-gray-400 uppercase">SUBTOTAL AED {Number(item.price) * item.quantity}</p>
-                </div>
+
+                {/* Preparation Details */}
+                {(item.preparation_details || item.preparation_instructions) && (
+                  <div className="bg-gray-50/50 rounded-2xl p-4 border border-gray-100/50 space-y-3">
+                    {item.preparation_details && (
+                      <div className="flex items-center gap-2">
+                        <div className="w-1 h-1 rounded-full bg-gray-300" />
+                        <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">Spec:</span>
+                        <span className="text-[10px] font-black uppercase text-gray-900">{item.preparation_details.name}</span>
+                        {parseFloat(item.preparation_details.price) > 0 && (
+                          <span className="text-[9px] font-bold text-emerald-600 ml-auto">+ AED {item.preparation_details.price}</span>
+                        )}
+                      </div>
+                    )}
+                    {item.preparation_instructions && (
+                      <div className="flex items-start gap-2 pt-2 border-t border-gray-100/50">
+                        <div className="w-1 h-1 rounded-full bg-gray-300 mt-1.5" />
+                        <div className="flex-1">
+                          <span className="text-[10px] font-black uppercase tracking-widest text-gray-500 block mb-1">Chef Instructions:</span>
+                          <p className="text-xs font-bold text-gray-900 leading-relaxed italic">"{item.preparation_instructions}"</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             ))}
           </div>
-          <div className="mt-12 pt-10 border-t border-gray-100 flex items-center justify-between">
-            <span className="text-[10px] font-black tracking-[0.4em] uppercase text-gray-400">Final Settlement</span>
-            <span className="text-4xl font-black text-gray-900 tracking-tighter">AED {order.total_amount}</span>
+
+          <div className="mt-12 pt-10 border-t border-gray-100 space-y-4">
+            <div className="flex items-center justify-between text-gray-400">
+              <span className="text-[10px] font-black tracking-[0.4em] uppercase">Order Value</span>
+              <span className="text-sm font-black text-gray-900 uppercase">AED {(parseFloat(order.total_amount) - parseFloat(order.tip_amount)).toFixed(2)}</span>
+            </div>
+            
+            {parseFloat(order.tip_amount) > 0 && (
+              <div className="flex items-center justify-between text-emerald-600">
+                <span className="text-[10px] font-black tracking-[0.4em] uppercase">Gratuity / Tip</span>
+                <span className="text-sm font-black uppercase">+ AED {parseFloat(order.tip_amount).toFixed(2)}</span>
+              </div>
+            )}
+
+            <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+              <span className="text-[10px] font-black tracking-[0.4em] uppercase text-gray-900">Final Settlement</span>
+              <span className="text-4xl font-black text-gray-900 tracking-tighter">AED {order.total_amount}</span>
+            </div>
           </div>
+        </div>
+
+        {/* Cancellation Details (if exists) */}
+        {cancelReq && (
+          <div className="bg-red-50 border-l border-r border-b border-red-100 p-10">
+            <h2 className="text-[10px] font-black text-red-400 uppercase tracking-[0.3em] mb-6">
+              Cancellation Intelligence
+            </h2>
+            <div className="space-y-6">
+              <div>
+                <p className="text-[9px] font-black text-red-300 uppercase tracking-widest mb-1">Status</p>
+                <p className="text-xl font-black text-red-900 uppercase tracking-tighter">
+                  {cancelReq.status}
+                </p>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div>
+                  <p className="text-[9px] font-black text-red-300 uppercase tracking-widest mb-1">Reason for Abort</p>
+                  <p className="text-xs font-bold text-red-900 leading-relaxed italic">"{cancelReq.reason}"</p>
+                </div>
+                {cancelReq.review_notes && (
+                  <div>
+                    <p className="text-[9px] font-black text-red-300 uppercase tracking-widest mb-1">HQ Review Notes</p>
+                    <p className="text-xs font-bold text-red-900 leading-relaxed italic">"{cancelReq.review_notes}"</p>
+                  </div>
+                )}
+              </div>
+              <div className="flex items-center gap-4 pt-4 border-t border-red-100">
+                <div>
+                  <p className="text-[9px] font-black text-red-300 uppercase tracking-widest mb-1">Requested At</p>
+                  <p className="text-[10px] font-bold text-red-900">{new Date(cancelReq.requested_at).toLocaleString()}</p>
+                </div>
+                {cancelReq.reviewed_at && (
+                  <div>
+                    <p className="text-[9px] font-black text-red-300 uppercase tracking-widest mb-1">Reviewed At</p>
+                    <p className="text-[10px] font-bold text-red-900">{new Date(cancelReq.reviewed_at).toLocaleString()}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Payment, Timeline and Logistics */}
+        <div className="bg-gray-50 border-l border-r border-b border-gray-100 p-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
+          {/* Payment */}
+          {order.payment && (
+            <div>
+              <h2 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mb-8">
+                Settlement Method
+              </h2>
+              <div className="space-y-6">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-white border border-gray-200 rounded-2xl">
+                    <span className="text-xs font-black text-gray-900 uppercase">{order.payment.payment_method}</span>
+                  </div>
+                  <div>
+                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Status</p>
+                    <p className={`text-xs font-black uppercase ${order.payment.status === 'SUCCESS' ? 'text-emerald-600' : 'text-amber-600'}`}>
+                      {order.payment.status}
+                    </p>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Transaction ID</p>
+                  <p className="text-[10px] font-bold text-gray-900 font-mono">{order.payment.transaction_id || "N/A"}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Timeline */}
+          {order.status_history?.length > 0 && (
+            <div>
+              <h2 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mb-8">
+                Order Timeline
+              </h2>
+              <div className="relative space-y-8 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-px before:bg-gray-200">
+                {order.status_history.map((h, i) => (
+                  <div key={i} className="relative pl-8">
+                    <div className="absolute left-0 top-1.5 w-4 h-4 -translate-x-1.5 rounded-full bg-white border-2 border-gray-900" />
+                    <div>
+                      <p className="text-[10px] font-black text-gray-900 uppercase tracking-widest">{h.status}</p>
+                      <p className="text-[9px] text-gray-400 font-bold mb-1">{new Date(h.created_at).toLocaleString()}</p>
+                      {h.notes && <p className="text-[10px] text-gray-500 italic">"{h.notes}"</p>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Logistics */}
+          {assignment && (
+            <div>
+              <h2 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mb-8">
+                Logistics Intelligence
+              </h2>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Assigned</span>
+                  <span className="text-[10px] font-bold text-gray-900">{new Date(assignment.assigned_at).toLocaleString()}</span>
+                </div>
+                {assignment.accepted_at && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Accepted</span>
+                    <span className="text-[10px] font-bold text-gray-900">{new Date(assignment.accepted_at).toLocaleString()}</span>
+                  </div>
+                )}
+                {assignment.delivered_at && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Completed</span>
+                    <span className="text-[10px] font-bold text-gray-900">{new Date(assignment.delivered_at).toLocaleString()}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Proof of delivery */}
@@ -481,6 +735,15 @@ const DeliveryOrderDetail: React.FC = () => {
 
         {/* Action buttons */}
         <div className="flex flex-col gap-2 py-10">
+          {canClaim && (
+            <button
+              onClick={handleClaim}
+              disabled={actionLoading}
+              className="w-full py-5 bg-black text-white text-[10px] font-black tracking-[0.4em] uppercase border-2 border-black hover:bg-white hover:text-black transition-all"
+            >
+              CLAIM ORDER
+            </button>
+          )}
           {canShip && (
             <button
               onClick={() => setShowShipConfirm(true)}

@@ -106,36 +106,36 @@ function CreateModal({ onClose, onCreated }: { onClose: () => void; onCreated: (
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="overflow-y-auto flex-1 px-6 py-6 space-y-6">
+        <form onSubmit={handleSubmit} className="overflow-y-auto flex-1 px-8 py-6 space-y-8 custom-scrollbar">
           {/* Name */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
+          <div className="grid grid-cols-2 gap-6">
+            <div className="space-y-1.5">
               <label className={labelCls}>First Name <span className="text-rose-400">*</span></label>
               <input className={inputCls} value={form.first_name} onChange={(e) => set("first_name", e.target.value)} placeholder="Ahmed" />
             </div>
-            <div>
+            <div className="space-y-1.5">
               <label className={labelCls}>Last Name</label>
               <input className={inputCls} value={form.last_name} onChange={(e) => set("last_name", e.target.value)} placeholder="Ali" />
             </div>
           </div>
 
           {/* Contact */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
+          <div className="grid grid-cols-2 gap-6">
+            <div className="space-y-1.5">
               <label className={labelCls}>Email</label>
               <input type="email" className={inputCls} value={form.email} onChange={(e) => set("email", e.target.value)} placeholder="delivery@example.com" />
             </div>
-            <div>
+            <div className="space-y-1.5">
               <label className={labelCls}>Phone Number</label>
-              <input className={inputCls} value={form.phone_number} onChange={(e) => set("phone_number", e.target.value)} placeholder="+971501234567" />
+              <input className={inputCls} value={form.phone_number} onChange={(e) => set("phone_number", e.target.value)} placeholder="+971 54 544 6111" />
             </div>
           </div>
-          <p className="text-[10px] text-[#A1A1AA] -mt-4 px-1">At least one of email or phone is required.</p>
+          <p className="text-[10px] text-[#A1A1AA] -mt-6 px-1">At least one of email or phone is required.</p>
 
           {/* Emirates */}
-          <div>
+          <div className="space-y-3">
             <label className={labelCls}>Assigned Emirates</label>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-1.5">
+            <div className="flex flex-wrap gap-2.5">
               {EMIRATES.map((em) => {
                 const isSelected = form.assigned_emirates.includes(em.value);
                 return (
@@ -143,10 +143,10 @@ function CreateModal({ onClose, onCreated }: { onClose: () => void; onCreated: (
                     key={em.value}
                     type="button"
                     onClick={() => toggleEmirate(em.value)}
-                    className={`px-3 py-2 text-[10px] sm:text-[11px] font-bold rounded-xl border transition-all flex items-center justify-center gap-1.5 ${
+                    className={`px-4 py-2 text-[11px] font-bold rounded-xl border transition-all duration-200 flex items-center gap-2 ${
                       isSelected
-                        ? "bg-[#18181B] text-white border-[#18181B]"
-                        : "bg-white text-gray-500 border-[#EEEEEE] hover:border-gray-300 hover:bg-gray-50/50"
+                        ? "bg-[#18181B] text-white border-[#18181B] shadow-lg shadow-black/10"
+                        : "bg-white text-slate-500 border-slate-200 hover:border-slate-400 hover:bg-slate-50"
                     }`}
                   >
                     {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)]" />}
@@ -158,70 +158,70 @@ function CreateModal({ onClose, onCreated }: { onClose: () => void; onCreated: (
           </div>
 
           {/* Vehicle + Identity */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
+          <div className="grid grid-cols-2 gap-6">
+            <div className="space-y-1.5">
               <label className={labelCls}>Vehicle Number</label>
               <input className={inputCls} value={form.vehicle_number} onChange={(e) => set("vehicle_number", e.target.value)} placeholder="ABC123" />
             </div>
-            <div>
+            <div className="space-y-1.5">
               <label className={labelCls}>Identity Number</label>
               <input className={inputCls} value={form.identity_number} onChange={(e) => set("identity_number", e.target.value)} placeholder="784-1234-5678-9" />
             </div>
           </div>
 
           {/* Emergency Contact */}
-          <div>
+          <div className="space-y-1.5">
             <label className={labelCls}>Emergency Contact</label>
-            <input className={inputCls} value={form.emergency_contact} onChange={(e) => set("emergency_contact", e.target.value)} placeholder="+971509876543" />
+            <input className={inputCls} value={form.emergency_contact} onChange={(e) => set("emergency_contact", e.target.value)} placeholder="+971 54 544 6111" />
           </div>
 
           {/* Notes */}
-          <div>
+          <div className="space-y-1.5">
             <label className={labelCls}>Notes</label>
             <textarea className={inputCls} rows={2} value={form.notes} onChange={(e) => set("notes", e.target.value)} placeholder="Add any additional details about the delivery boy…" />
           </div>
 
           {/* Available toggle */}
-          <div className="flex items-center justify-between py-3.5 px-4 bg-[#FAFAFA] rounded-2xl border border-[#EEEEEE] transition-colors hover:bg-[#F4F4F5]">
+          <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 hover:bg-slate-100/50 transition-colors">
             <div className="flex flex-col gap-0.5">
-              <span className="text-xs font-bold text-[#18181B]">Available for delivery</span>
-              <p className="text-[10px] text-[#A1A1AA]">Allow this boy to receive new delivery assignments</p>
+              <span className="text-xs font-bold text-slate-900">Available for delivery</span>
+              <p className="text-[10px] text-slate-400">Allow this boy to receive new delivery assignments</p>
             </div>
             <button
               type="button"
               onClick={() => set("is_available", !form.is_available)}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-all duration-300 outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500/20 ${
-                form.is_available ? "bg-emerald-500 shadow-inner" : "bg-gray-300 shadow-inner"
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-all duration-300 ${
+                form.is_available ? "bg-emerald-500" : "bg-slate-300"
               }`}
             >
               <span
                 className={`${
                   form.is_available ? "translate-x-6" : "translate-x-1"
-                } inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-300 shadow-[0_2px_4px_rgba(0,0,0,0.1)]`}
+                } inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-300 shadow-sm`}
               />
             </button>
           </div>
 
           {err && (
-            <div className="flex items-start gap-2 text-xs text-rose-600 bg-rose-50 border border-rose-100 rounded-xl px-4 py-3 animate-in fade-in slide-in-from-top-1">
-              <AlertCircle size={14} className="shrink-0 mt-0.5" />
-              <p className="font-medium">{err}</p>
+            <div className="p-4 bg-rose-50 border border-rose-100 rounded-2xl flex items-start gap-3 animate-in fade-in slide-in-from-top-1">
+              <AlertCircle size={16} className="text-rose-500 shrink-0 mt-0.5" />
+              <p className="text-xs font-medium text-rose-600">{err}</p>
             </div>
           )}
         </form>
 
-        <div className="px-6 py-5 border-t border-[#EEEEEE] flex items-center gap-3 bg-gray-50/30 rounded-b-2xl">
+        <div className="px-8 py-6 border-t border-slate-100 flex gap-4 bg-slate-50/50">
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 h-11 px-4 border border-[#EEEEEE] bg-white rounded-xl text-sm font-bold text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-all active:scale-[0.98]"
+            className="flex-1 py-4 border border-slate-200 bg-white rounded-2xl text-sm font-bold text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-all active:scale-95"
           >
             Cancel
           </button>
           <button
             onClick={handleSubmit as any}
             disabled={saving}
-            className="flex-1 h-11 px-4 bg-[#18181B] text-white rounded-xl text-sm font-bold hover:bg-black transition-all active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm"
+            className="flex-[2] py-4 bg-[#18181B] text-white rounded-2xl text-sm font-bold hover:bg-black transition-all shadow-xl shadow-black/10 flex items-center justify-center gap-2 active:scale-95 disabled:opacity-40"
           >
             {saving ? (
               <>

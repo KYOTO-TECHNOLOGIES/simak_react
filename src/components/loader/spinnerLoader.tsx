@@ -55,7 +55,22 @@ const InitialLoader = () => {
   const orderedTexts = useMemo(() => {
     const startIdx = getStoredLangIndex();
     const idx = startIdx === -1 ? 0 : startIdx;
-    return [...LOADER_LANGUAGES.slice(idx), ...LOADER_LANGUAGES.slice(0, idx)];
+    
+    // Default cycle starts with the current language
+    const defaultCycle = [...LOADER_LANGUAGES.slice(idx), ...LOADER_LANGUAGES.slice(0, idx)];
+    
+    // If the first language is not Arabic, ensure Arabic is the second one
+    if (defaultCycle[0].lang !== 'ar') {
+      const arabicItemIdx = defaultCycle.findIndex(item => item.lang === 'ar');
+      if (arabicItemIdx !== -1 && arabicItemIdx !== 1) {
+        const result = [...defaultCycle];
+        const [arabicItem] = result.splice(arabicItemIdx, 1);
+        result.splice(1, 0, arabicItem);
+        return result;
+      }
+    }
+    
+    return defaultCycle;
   }, []);
   const [langIndex, setLangIndex] = useState(0);
 

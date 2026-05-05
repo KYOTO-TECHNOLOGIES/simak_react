@@ -7,9 +7,9 @@ import {
   ChevronRight,
   Inbox,
   MapPin,
-  Package,
+  Clock,
 } from "lucide-react";
-import { deliveryApi, type DeliveryOrder } from "./deliveryApi";
+import { deliveryApi, type DeliverySummaryOrder } from "./deliveryApi";
 
 const STATUS_COLOR: Record<string, string> = {
   PAID: "bg-green-50 text-green-700",
@@ -23,44 +23,82 @@ const FILTERS = ["ALL", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED"] as co
 type Filter = (typeof FILTERS)[number];
 
 const MyOrders: React.FC = () => {
-  const [orders, setOrders] = useState<DeliveryOrder[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [orders, setOrders] = useState<DeliverySummaryOrder[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>("ALL");
+  const [offset, setOffset] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const LIMIT = 6;
 
-  const load = async () => {
-    setLoading(true);
+  const load = async (isInitial = true) => {
+    if (isInitial) {
+      setLoading(true);
+      setOffset(0);
+      setOrders([]);
+    } else {
+      setLoadingMore(true);
+    }
     setError(null);
+
     try {
-      const data = await deliveryApi.getMyOrders();
-      const list = Array.isArray(data) ? data : data.results ?? [];
-      setOrders(list);
+      const currentOffset = isInitial ? 0 : offset;
+      const data = await deliveryApi.getMyOrders({
+        limit: LIMIT,
+        offset: currentOffset,
+        status: filter === "ALL" ? undefined : filter,
+      });
+
+      const newOrders = data.results ?? [];
+      if (isInitial) {
+        setOrders(newOrders);
+      } else {
+        setOrders((prev) => [...prev, ...newOrders]);
+      }
+
+      setHasMore(orders.length + newOrders.length < data.count);
+      setOffset(currentOffset + LIMIT);
     } catch (e: any) {
       setError(e?.response?.data?.detail || e?.message || "Failed to load orders");
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   };
 
   useEffect(() => {
-    load();
-  }, []);
+    load(true);
+  }, [filter]);
 
-  const visible =
-    filter === "ALL"
-      ? orders
-      : orders.filter((o) => o.status === filter);
+  // Infinite scroll logic
+  useEffect(() => {
+    const handleScroll = () => {
+      if (
+        window.innerHeight + document.documentElement.scrollTop + 100 >=
+          document.documentElement.offsetHeight &&
+        !loadingMore &&
+        hasMore &&
+        !loading
+      ) {
+        load(false);
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [loadingMore, hasMore, loading, offset]);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 pb-20">
       <div className="flex items-center justify-between mb-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight">My Deliveries</h1>
           <p className="text-sm text-gray-400 mt-1">Manage and track your active and past orders</p>
         </div>
         <button
-          onClick={load}
-          disabled={loading}
+          onClick={() => load(true)}
+          disabled={loading || loadingMore}
           className="p-2.5 rounded-full bg-white border border-gray-100 text-gray-400 hover:text-cyan-600 hover:border-cyan-100 hover:shadow-md hover:-rotate-180 transition-all duration-500 disabled:opacity-40"
         >
           <RefreshCw size={18} className={loading ? "animate-spin" : ""} />
@@ -83,19 +121,19 @@ const MyOrders: React.FC = () => {
         ))}
       </div>
 
-      {loading && (
+      {loading && orders.length === 0 && (
         <div className="flex flex-col items-center justify-center py-20 gap-3 text-gray-400">
           <Loader2 size={28} className="animate-spin" />
           <p className="text-sm">Loading orders…</p>
         </div>
       )}
 
-      {!loading && error && (
+      {!loading && error && orders.length === 0 && (
         <div className="flex flex-col items-center justify-center py-16 gap-4 text-center">
           <AlertCircle size={28} className="text-red-400" />
           <p className="text-sm text-red-600">{error}</p>
           <button
-            onClick={load}
+            onClick={() => load(true)}
             className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
           >
             <RefreshCw size={14} /> Retry
@@ -103,18 +141,18 @@ const MyOrders: React.FC = () => {
         </div>
       )}
 
-      {!loading && !error && visible.length === 0 && (
+      {!loading && !error && orders.length === 0 && (
         <div className="flex flex-col items-center justify-center py-20 gap-3 text-gray-400">
           <Inbox size={36} />
           <p className="text-sm">No {filter !== "ALL" ? filter.toLowerCase() : ""} orders found.</p>
         </div>
       )}
 
-      {!loading && !error && (
+      {orders.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 mt-4">
-          {visible.map((order) => {
-            const assignment = order.delivery_assignment;
-            const hasCancelRequest = order.cancellation_request?.status === "PENDING";
+          {orders.map((order) => {
+            const hasCancelRequest = order.delivery_cancel_request?.status === "PENDING";
+            const address = order.shipping_address_summary;
 
             return (
               <Link
@@ -131,7 +169,11 @@ const MyOrders: React.FC = () => {
                       #{order.id}
                     </span>
                     <span className="text-[10px] font-bold tracking-widest uppercase text-gray-400">
-                      {new Date(order.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                      {order.preferred_delivery_date ? (
+                        <>DUE: {new Date(order.preferred_delivery_date).toLocaleDateString()} {order.preferred_delivery_slot_name ? `· ${order.preferred_delivery_slot_name}` : ""}</>
+                      ) : (
+                        new Date(order.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+                      )}
                     </span>
                   </div>
                   <div className="flex flex-col items-end gap-1.5">
@@ -154,31 +196,34 @@ const MyOrders: React.FC = () => {
                     <MapPin size={14} className="text-gray-400 group-hover:text-cyan-500 transition-colors" />
                   </div>
                   <p className="text-xs text-gray-500 font-medium leading-relaxed group-hover:text-gray-800 transition-colors">
-                    {order.shipping_address_details?.street_address}, {order.shipping_address_details?.emirate}
+                    {address?.street_address}, {address?.emirate?.replace("_", " ")}
                   </p>
                 </div>
 
                 <div className="flex items-center justify-between py-3.5 border-y border-dashed border-gray-100 relative z-10 mt-2">
                   <div className="flex items-center gap-2 text-xs font-bold text-gray-400">
-                    <Package size={14} className="group-hover:rotate-12 transition-transform duration-300" />
-                    <span>{order.items?.length ?? 0} ITEMS</span>
+                    <Clock size={14} className="group-hover:rotate-12 transition-transform duration-300" />
+                    <span>{order.customer_name || "Guest"}</span>
                   </div>
                   <div className="text-lg font-black text-gray-900">
-                    AED {order.total_amount}
+                    AED {parseFloat(order.total_amount).toFixed(2)}
+                    {parseFloat(order.tip_amount) > 0 && (
+                      <div className="text-[10px] text-emerald-600 font-bold mt-0.5 text-right">+ AED {parseFloat(order.tip_amount).toFixed(2)} TIP</div>
+                    )}
                   </div>
                 </div>
 
                 <div className="flex items-center justify-between relative z-10 mt-auto pt-4">
-                  {assignment ? (
+                  {order.delivery_assignment?.status ? (
                     <span
-                      className={`text-[9px] font-black tracking-[0.2em] uppercase px-3 py-1.5 rounded-lg ${assignment.status === "COMPLETED"
+                      className={`text-[9px] font-black tracking-[0.2em] uppercase px-3 py-1.5 rounded-lg ${order.delivery_assignment.status === "COMPLETED"
                           ? "bg-emerald-50 text-emerald-600 border border-emerald-100/50"
-                          : assignment.status === "IN_TRANSIT"
+                          : order.delivery_assignment.status === "IN_TRANSIT"
                             ? "bg-indigo-50 text-indigo-600 border border-indigo-100/50"
                             : "bg-amber-50 text-amber-600 border border-amber-100/50"
                         }`}
                     >
-                      {assignment.status.replace("_", " ")}
+                      {order.delivery_assignment.status.replace("_", " ")}
                     </span>
                   ) : (
                     <span className="text-[9px] font-black tracking-[0.2em] uppercase text-gray-300">
@@ -193,6 +238,18 @@ const MyOrders: React.FC = () => {
             );
           })}
         </div>
+      )}
+
+      {loadingMore && (
+        <div className="flex justify-center py-8">
+          <Loader2 size={24} className="animate-spin text-cyan-500" />
+        </div>
+      )}
+
+      {!hasMore && orders.length > 0 && (
+        <p className="text-center text-[10px] font-bold text-gray-300 uppercase tracking-widest py-8">
+          End of history
+        </p>
       )}
     </div>
   );

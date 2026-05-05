@@ -7,7 +7,7 @@ import { BrandSignature } from "../common/BrandSignature";
 const LANG_TEXTS = [
   { a: "SIMAK", b: "FRESH" },
   { a: "思马克", b: "新鲜" },
-  { a: "سماك", b: "فريش" },
+  { a: "سيماك", b: "فريش" },
 ];
 
 const ShrimpLoader = () => {
@@ -43,14 +43,24 @@ const ShrimpLoader = () => {
         >
           <div className="flex items-baseline gap-2">
             <span 
-              className="text-[22px] font-black tracking-[0.14em] uppercase leading-none"
-              style={{ color: BRAND_COLORS.DARK_CYAN }}
+              className="text-[22px] uppercase leading-none"
+              style={{ 
+                color: BRAND_COLORS.DARK_CYAN,
+                fontFamily: "'SF Pro Display', sans-serif",
+                fontWeight: 900,
+                letterSpacing: "0.05em"
+              }}
             >
               SIMAK
             </span>
             <span 
-              className="text-[22px] font-black tracking-[0.14em] uppercase leading-none"
-              style={{ color: BRAND_COLORS.CYAN }}
+              className="text-[22px] uppercase leading-none"
+              style={{ 
+                color: BRAND_COLORS.CYAN,
+                fontFamily: "'SF Pro Display', sans-serif",
+                fontWeight: 900,
+                letterSpacing: "0.05em"
+              }}
             >
               FRESH
             </span>

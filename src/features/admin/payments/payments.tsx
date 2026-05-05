@@ -1,11 +1,11 @@
-import React, { useEffect, useState, useMemo, useRef } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   CreditCard, Wallet, Banknote, RefreshCcw,
-  Search, Filter, Download, ChevronRight, X, CheckCircle2,
-  AlertCircle, Clock, ArrowUpRight, ArrowDownRight,
-  Receipt, User, ShieldCheck, Landmark,
-  LayoutDashboard, ListOrdered, Undo2, HandCoins, BarChart3,
+  Search, Filter, Download, ChevronRight,
+  AlertCircle, Clock,
+  Receipt, Landmark,
+  ListOrdered, Undo2, HandCoins,
   ChevronLeft, Columns3, Eye, ArrowLeft, ExternalLink,
 } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
@@ -271,6 +271,7 @@ const PaymentManagement: React.FC = () => {
             onClearFilters={clearFilters}
             onPageChange={setPage}
             onSelect={(p) => navigate(`/admin/payments/${p.id}`)}
+            onExport={handleExport}
           />
         </main>
       </div>
@@ -920,17 +921,6 @@ const NavTab = ({ id, active, label, icon, onClick }: any) => (
   </button>
 );
 
-function methodColor(method: string): string {
-  const colors: Record<string, string> = {
-    UPI: "bg-emerald-500",
-    Card: "bg-blue-500",
-    COD: "bg-amber-500",
-    NetBanking: "bg-slate-400",
-    Wallet: "bg-violet-500",
-    "N/A": "bg-gray-300",
-  };
-  return colors[method] ?? "bg-gray-300";
-}
 
 const MethodIcon = ({ method }: { method: PaymentMethod }) => {
   if (method === "UPI") return <Landmark size={12} />;
@@ -953,19 +943,6 @@ const PaymentStatusBadge = ({ status }: { status: PaymentStatus }) => {
   );
 };
 
-const TimelineItem = ({ time, title, desc, status }: any) => (
-  <div className="flex gap-4">
-    <div className="flex flex-col items-center">
-      <div className={`w-2.5 h-2.5 rounded-full mt-1.5 ring-4 ring-white shadow-sm ${status === "success" ? "bg-emerald-500" : "bg-gray-300"}`} />
-      <div className="w-px h-full bg-gray-100 mt-1" />
-    </div>
-    <div className="pb-8">
-      <p className="text-[10px] font-mono text-[#A1A1AA] font-bold">{time}</p>
-      <p className="text-sm font-bold text-[#18181B]">{title}</p>
-      <p className="text-xs text-[#71717A] mt-1 leading-relaxed">{desc}</p>
-    </div>
-  </div>
-);
 
 const DetailBox = ({ label, value, icon }: any) => (
   <div className="p-4 border border-[#EEEEEE] rounded-xl space-y-1.5 shadow-sm bg-white hover:border-gray-300 transition-colors">

@@ -3,12 +3,11 @@ import { Link, useSearchParams } from "react-router-dom";
 import { type ProductDto } from "../admin/products/productApi";
 import { motion, AnimatePresence } from "framer-motion";
 import { Helmet } from "react-helmet-async";
-import { Search, ShoppingCart, Star, Filter, ArrowRight, Zap, Loader2, Bell, X } from "lucide-react";
+import { Search, ShoppingCart, Star, Filter, ArrowRight, Zap, Loader2, Bell } from "lucide-react";
 import { useAppDispatch, useAppSelector, useRequireAuth } from "../../hooks";
 import { fetchCartRequest } from "../admin/cart/cartSlice";
 import { cartsApi } from "../admin/cart/cartApi";
 import { useNavigate } from "react-router-dom";
-import ShrimpLoader from "../../components/loader/preloader";
 import { useTranslation } from "react-i18next";
 import { useInfiniteProducts, useCategories } from "../../hooks/queries";
 import { useToast } from "../../components/ui/Toast";
@@ -79,9 +78,14 @@ const ProductCard = memo(({
 
                     <div className="absolute top-2 sm:top-3 left-2 sm:left-3 flex flex-col gap-1 sm:gap-2 z-10">
                         {product.discount_price && (
-                            <span className="px-2 py-0.5 sm:px-2.5 sm:py-1 bg-rose-500 text-white text-[9px] sm:text-[10px] font-bold uppercase tracking-wider rounded-md sm:rounded-lg shadow-sm">
-                                {t("card.sale")}
-                            </span>
+                            <div className="flex flex-col gap-1">
+                                <span className="px-2 py-0.5 sm:px-2.5 sm:py-1 bg-rose-500 text-white text-[9px] sm:text-[10px] font-bold uppercase tracking-wider rounded-md sm:rounded-lg shadow-sm">
+                                    {t("card.sale")}
+                                </span>
+                                <span className="px-2 py-0.5 sm:px-2.5 sm:py-1 bg-white text-rose-600 text-[9px] sm:text-[10px] font-black tracking-wider rounded-md sm:rounded-lg shadow-sm border border-rose-100">
+                                    -{Math.round((1 - Number(product.discount_price) / Number(product.price)) * 100)}%
+                                </span>
+                            </div>
                         )}
                         {product.average_rating > 4.5 && (
                             <span className="px-2 py-0.5 sm:px-2.5 sm:py-1 bg-amber-400 text-black text-[9px] sm:text-[10px] font-bold uppercase tracking-wider rounded-md sm:rounded-lg shadow-sm flex items-center gap-1">
@@ -284,8 +288,6 @@ const UserProductsPage: React.FC = () => {
         if (product.preparation_specifications && product.preparation_specifications.length > 0) {
             setSelectedProductForSpec(product);
             setSpecModalMode("cart");
-            setSelectedPreparationId(null);
-            setPreparationInstructions("");
             return;
         }
 
@@ -312,8 +314,6 @@ const UserProductsPage: React.FC = () => {
         if (product.preparation_specifications && product.preparation_specifications.length > 0) {
             setSelectedProductForSpec(product);
             setSpecModalMode("checkout");
-            setSelectedPreparationId(null);
-            setPreparationInstructions("");
             return;
         }
 
@@ -388,9 +388,9 @@ const UserProductsPage: React.FC = () => {
         <div dir="ltr" className="min-h-screen bg-slate-50 text-slate-800 selection:bg-cyan-100 selection:text-cyan-900">
             <Helmet>
                 <title>
-                    {pageCategoryLabel ? `${pageCategoryLabel} - SIMAK FRESH` : searchTerm ? `Search: ${searchTerm} - SIMAK FRESH` : "Shop Fresh Seafood & Meat - SIMAK FRESH"}
+                    {pageCategoryLabel ? `${pageCategoryLabel} - SIMAK FRESH` : searchTerm ? `Search: ${searchTerm} - SIMAK FRESH` : "Shop Fresh Seafood - SIMAK FRESH"}
                 </title>
-                <meta name="description" content={pageCategoryLabel ? `Browse our freshest selection of ${pageCategoryLabel}. Quality seafood and meat delivered fresh.` : "Browse our full catalog of premium fresh seafood and meat products locally sourced and delivered in Dubai."} />
+                <meta name="description" content={pageCategoryLabel ? `Browse our freshest selection of ${pageCategoryLabel}. Quality seafood and delivered fresh.` : "Browse our full catalog of premium fresh seafood and meat products locally sourced and delivered in Dubai."} />
             </Helmet>
 
             {/* ─── Sticky Premium Filter & Search Bar ─── */}
