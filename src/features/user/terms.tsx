@@ -9,7 +9,7 @@ const TermsOfServicePage: React.FC = () => {
           Welcome to SIMAK FRESH
         </h1>
         <p className="max-w-3xl text-base leading-8 text-slate-600">
-          These Terms and Conditions govern your use of our mobile application and services operated by SIMAK FRESH LLC, Trade License No. 2645148, registered at Sharjah Media City, Sharjah, UAE.
+          These Terms and Conditions govern your use of our mobile application and services operated by SIMAK FRESH LLC, registered at Sharjah Media City, Sharjah, UAE.
         </p>
 
         <h2 className="mt-10 text-2xl font-bold text-slate-900">1. Product Information</h2>
@@ -32,7 +32,7 @@ const TermsOfServicePage: React.FC = () => {
           </li> */}
           <li className="flex gap-3 leading-7">
             <span className="mt-2 h-2 w-2 rounded-full bg-cyan-600 shrink-0" />
-            <span><strong>Payments:</strong> We accept Credit/Debit cards, Apple Pay, and Cash on Delivery (COD).</span>
+            <span><strong>Payments:</strong> We accept Credit/Debit cards, Apple Pay,Samsung Pay and Cash on Delivery (COD).</span>
           </li>
           <li className="flex gap-3 leading-7">
             <span className="mt-2 h-2 w-2 rounded-full bg-cyan-600 shrink-0" />

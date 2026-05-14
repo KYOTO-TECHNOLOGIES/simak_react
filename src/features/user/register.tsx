@@ -7,7 +7,6 @@ import {
   Mail,
   RefreshCcw,
   User,
-  ChevronDown,
   Timer,
   AlertCircle
 } from "lucide-react";
@@ -109,9 +108,10 @@ const RegisterWithOtp: React.FC = () => {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [referralCode, setReferralCode] = useState("");
+  const [sendToWhatsApp, setSendToWhatsApp] = useState(false);
   const [firstNameTouched, setFirstNameTouched] = useState(false);
   const [countryCode, setCountryCode] = useState("+971");
-  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const {
@@ -125,8 +125,6 @@ const RegisterWithOtp: React.FC = () => {
 
   const countries = [
     { code: "+971", flag: "https://flagcdn.com/w40/ae.png", name: "UAE" },
-    { code: "+91", flag: "https://flagcdn.com/w40/in.png", name: "India" },
-    { code: "+86", flag: "https://flagcdn.com/w40/cn.png", name: "China" },
   ];
 
   const selectedCountry = countries.find((c) => c.code === countryCode) || countries[0];
@@ -216,6 +214,7 @@ const RegisterWithOtp: React.FC = () => {
         first_name: firstName.trim(),
         last_name: lastName.trim(),
         referral_code: referralCode.trim() || undefined,
+        otp_platform: sendToWhatsApp ? "whatsapp" : undefined,
       })
     );
     startTimers();
@@ -251,6 +250,7 @@ const RegisterWithOtp: React.FC = () => {
         otp_type: otp_type,
         phone_number: getFormattedPhone(),
         email: otp_type === "email" ? (value || localValue.trim()) : undefined,
+        otp_platform: sendToWhatsApp ? "whatsapp" : undefined,
       })
     );
     startTimers();
@@ -340,39 +340,11 @@ const RegisterWithOtp: React.FC = () => {
                 <Field label={otp_type === "phone" ? t("auth.phoneNumber", "Phone number") : t("auth.email", "Email")}>
                   {otp_type === "phone" ? (
                     <div className="flex gap-2">
-                      <div className="relative" ref={dropdownRef}>
-                        <button
-                          type="button"
-                          onClick={() => setDropdownOpen(!dropdownOpen)}
-                          className="h-11 rounded-xl border border-gray-200 bg-white px-3 text-sm outline-none transition
-                                     focus:border-cyan-600 focus:ring-4 focus:ring-cyan-500/10 cursor-pointer
-                                     flex items-center gap-2 hover:bg-gray-50"
-                        >
-                          <img src={selectedCountry.flag} alt={selectedCountry.name} className="w-5 h-3.5 object-cover rounded-sm shadow-sm" />
-                          <span className="text-sm font-medium text-gray-700">{selectedCountry.code}</span>
-                          <ChevronDown size={14} className={`text-gray-400 transition-transform ${dropdownOpen ? "rotate-180" : ""}`} />
-                        </button>
-
-                        {dropdownOpen && (
-                          <div className={`absolute top-full ${isArabic ? 'right-0' : 'left-0'} mt-1 w-48 bg-white border border-gray-200 rounded-xl shadow-lg z-50 overflow-hidden`}>
-                            {countries.map((c) => (
-                              <button
-                                key={c.code}
-                                type="button"
-                                onClick={() => {
-                                  setCountryCode(c.code);
-                                  setDropdownOpen(false);
-                                }}
-                                className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm hover:bg-cyan-50 transition-colors
-                                           ${c.code === countryCode ? "bg-cyan-50 text-cyan-600" : "text-gray-700"}`}
-                              >
-                                <img src={c.flag} alt={c.name} className="w-5 h-3.5 object-cover rounded-sm shadow-sm" />
-                                <span className="font-medium">{c.name}</span>
-                                <span className={`${isArabic ? 'mr-auto' : 'ml-auto'} text-gray-400 text-xs`}>{c.code}</span>
-                              </button>
-                            ))}
-                          </div>
-                        )}
+                      <div className="flex gap-2 items-center">
+                        <div className="flex items-center gap-2 px-1 text-sm text-gray-700 shrink-0">
+                          <img src={selectedCountry.flag} alt="flag" className="w-5 h-3.5 object-cover rounded-sm shadow-sm" />
+                          <span className="font-bold text-gray-600">{selectedCountry.code}</span>
+                        </div>
                       </div>
 
                       <input
@@ -399,41 +371,60 @@ const RegisterWithOtp: React.FC = () => {
                   )}
                 </Field>
 
-                <label className="flex items-start gap-3 pt-1 cursor-pointer select-none">
-                  <span className="relative mt-0.5 h-4 w-4 rounded-md border border-gray-300 flex items-center justify-center">
-                    <input
-                      type="checkbox"
-                      className="peer absolute inset-0 opacity-0 cursor-pointer"
-                      checked={agreeTerms}
-                      onChange={(e) => setAgreeTerms(e.target.checked)}
-                    />
-                    <Check
-                      size={12}
-                      strokeWidth={3}
-                      className="opacity-0 peer-checked:opacity-100 transition-opacity text-cyan-600"
-                    />
-                  </span>
-                  <span className="text-xs text-gray-500 leading-relaxed">
-                    <Trans
-                      i18nKey="auth.termsSentence"
-                      ns="common"
-                      components={[
-                        <a
-                          href="/terms-of-service"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-cyan-600 hover:text-cyan-700 underline underline-offset-2 font-semibold transition-colors"
-                        />,
-                        <a
-                          href="/privacy-policy"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-cyan-600 hover:text-cyan-700 underline underline-offset-2 font-semibold transition-colors"
-                        />,
-                      ]}
-                    />
-                  </span>
-                </label>
+                <div className="mt-4 space-y-3">
+                  {otp_type === "phone" && (
+                    <label className="flex items-center gap-3 cursor-pointer select-none group/wa">
+                      <div className="relative h-4 w-4 rounded-md border border-gray-300 flex items-center justify-center transition-all group-hover/wa:border-green-500">
+                        <input
+                          type="checkbox"
+                          className="peer absolute inset-0 opacity-0 cursor-pointer"
+                          checked={sendToWhatsApp}
+                          onChange={(e) => setSendToWhatsApp(e.target.checked)}
+                        />
+                        <Check size={12} strokeWidth={3} className="opacity-0 peer-checked:opacity-100 transition-opacity text-green-600" />
+                      </div>
+                      <span className="text-xs text-gray-500 group-hover/wa:text-green-600 transition-colors">
+                        {t("auth.sendToWhatsApp", "Send OTP via WhatsApp")}
+                      </span>
+                    </label>
+                  )}
+
+                  <label className="flex items-start gap-3 cursor-pointer select-none group/terms">
+                    <div className="relative mt-0.5 h-4 w-4 rounded-md border border-gray-300 flex items-center justify-center transition-all group-hover/terms:border-cyan-500">
+                      <input
+                        type="checkbox"
+                        className="peer absolute inset-0 opacity-0 cursor-pointer"
+                        checked={agreeTerms}
+                        onChange={(e) => setAgreeTerms(e.target.checked)}
+                      />
+                      <Check
+                        size={12}
+                        strokeWidth={3}
+                        className="opacity-0 peer-checked:opacity-100 transition-opacity text-cyan-600"
+                      />
+                    </div>
+                    <span className="text-xs text-gray-500 leading-relaxed group-hover/terms:text-gray-700 transition-colors">
+                      <Trans
+                        i18nKey="auth.termsSentence"
+                        ns="common"
+                        components={[
+                          <a
+                            href="/terms-of-service"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-cyan-600 hover:text-cyan-700 underline underline-offset-2 font-semibold transition-colors"
+                          />,
+                          <a
+                            href="/privacy-policy"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-cyan-600 hover:text-cyan-700 underline underline-offset-2 font-semibold transition-colors"
+                          />,
+                        ]}
+                      />
+                    </span>
+                  </label>
+                </div>
 
                 {displayError && (
                   <p className="text-[11px] font-semibold text-rose-600 mt-2">

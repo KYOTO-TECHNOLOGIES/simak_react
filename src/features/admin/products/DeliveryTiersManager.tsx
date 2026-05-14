@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Trash2, Plus, AlertCircle } from "lucide-react";
+import { Trash2, Plus, AlertCircle, Loader2 } from "lucide-react";
 import { tierApi } from "./tierApi";
 import type { DeliveryTierDto } from "./tierApi";
 
@@ -142,11 +142,12 @@ const DeliveryTiersManager: React.FC<DeliveryTiersManagerProps> = ({
                   <td className="py-2 px-3">
                     <button
                       onClick={() => tier.id && handleDeleteTier(tier.id)}
-                      className="text-red-600 hover:text-red-700 transition"
+                      className="text-red-600 hover:text-red-700 transition disabled:opacity-50"
                       title="Delete"
                       type="button"
+                      disabled={loading}
                     >
-                      <Trash2 size={16} />
+                      {loading ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
                     </button>
                   </td>
                 </tr>
@@ -207,7 +208,7 @@ const DeliveryTiersManager: React.FC<DeliveryTiersManagerProps> = ({
               disabled={loading}
               className="w-full bg-cyan-600 text-white font-semibold py-2 rounded-lg hover:bg-cyan-700 transition disabled:opacity-50 flex items-center justify-center gap-2"
             >
-              <Plus size={16} />
+              {loading ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
               Add Tier
             </button>
           </div>

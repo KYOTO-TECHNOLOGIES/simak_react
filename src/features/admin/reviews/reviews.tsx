@@ -18,6 +18,7 @@ import {
   Calendar,
   User,
   Package,
+  Loader2,
 } from "lucide-react";
 
 import { dashboardApi } from "../dashboard/dashboardApi";
@@ -569,11 +570,17 @@ const ReviewsManagement: React.FC = () => {
                               }
                             }}
                             disabled={!!togglingId}
-                            className="p-2 hover:bg-emerald-50 text-emerald-600 rounded-lg transition-colors disabled:opacity-50"
-                            title={r.isVisible ? "Hide" : "Show"}
-                          >
-                            {r.isVisible ? <EyeOff size={16} /> : <Eye size={16} />}
-                          </button>
+                             className="p-2 hover:bg-emerald-50 text-emerald-600 rounded-lg transition-colors disabled:opacity-50"
+                             title={r.isVisible ? "Hide" : "Show"}
+                           >
+                             {togglingId === r.id ? (
+                               <Loader2 size={16} className="animate-spin" />
+                             ) : r.isVisible ? (
+                               <EyeOff size={16} />
+                             ) : (
+                               <Eye size={16} />
+                             )}
+                           </button>
                         </div>
                       </td>
                     )}
@@ -852,13 +859,14 @@ const ReviewDetailPanel = ({
           placeholder="Write a response to this review…"
         />
         <div className="flex justify-end">
-          <button
-            onClick={handleSaveResponse}
-            disabled={saving}
-            className="px-4 py-2 text-sm font-bold rounded-lg bg-black text-white disabled:opacity-50"
-          >
-            Save Response
-          </button>
+           <button
+             onClick={handleSaveResponse}
+             disabled={saving}
+             className="px-4 py-2 text-sm font-bold rounded-lg bg-black text-white disabled:opacity-50 flex items-center justify-center gap-2"
+           >
+             {saving ? <Loader2 size={16} className="animate-spin" /> : null}
+             {saving ? "Saving..." : "Save Response"}
+           </button>
         </div>
       </div>
     </div>

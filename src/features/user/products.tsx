@@ -390,7 +390,7 @@ const UserProductsPage: React.FC = () => {
                 <title>
                     {pageCategoryLabel ? `${pageCategoryLabel} - SIMAK FRESH` : searchTerm ? `Search: ${searchTerm} - SIMAK FRESH` : "Shop Fresh Seafood - SIMAK FRESH"}
                 </title>
-                <meta name="description" content={pageCategoryLabel ? `Browse our freshest selection of ${pageCategoryLabel}. Quality seafood and delivered fresh.` : "Browse our full catalog of premium fresh seafood and meat products locally sourced and delivered in Dubai."} />
+                <meta name="description" content={pageCategoryLabel ? `Browse our freshest selection of ${pageCategoryLabel}. Quality seafood and delivered fresh.` : "Browse our full catalog of premium fresh seafood and meat products locally sourced and delivered in UAE."} />
             </Helmet>
 
             {/* ─── Sticky Premium Filter & Search Bar ─── */}

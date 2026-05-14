@@ -62,14 +62,14 @@
   },
   "sidebar": {
     "call": {
-      "title": "Call Support",
-      "subtitle": "Speak to our team",
+      "title": "WhatsApp Support",
+      "subtitle": "Chat with our team",
       "value": "+971 54 54 46 111",
-      "tel": "tel:+971545446111"
+      "tel": "https://wa.me/971545446111"
     },
     "hours": {
       "title": "Working Hours",
-      "value": "Sat - Thu: 9 AM - 9 PM"
+      "value": "Mon - Sun: 8 AM - 5 PM"
     },
     "email": {
       "title": "Email Us",

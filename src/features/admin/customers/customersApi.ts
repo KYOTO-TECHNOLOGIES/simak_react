@@ -15,6 +15,7 @@ export interface UserDto {
   is_email_verified: boolean;
   is_phone_verified: boolean;
   google_id: string | null;
+  nationality: string | null;
   profile: {
     id: number;
     profile_picture: string | null;
@@ -73,6 +74,7 @@ export interface Customer {
   createdAt: string;
   updatedAt: string;
   deletedAt: string | null;
+  nationality: string | null;
   addresses: AddressDto[];
 }
 
@@ -83,6 +85,7 @@ export type CustomersQuery = {
   role?: string;
   is_email_verified?: boolean;
   is_phone_verified?: boolean;
+  nationality?: string;
   page?: number;
   limit?: number;
   offset?: number;

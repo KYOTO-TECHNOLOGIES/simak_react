@@ -41,6 +41,7 @@ function mapUserDtoToCustomer(dto: UserDto): Customer {
     createdAt: dto.created_at,
     updatedAt: dto.updated_at,
     deletedAt: dto.deleted_at,
+    nationality: dto.nationality ?? null,
     addresses: dto.addresses ?? [],
   };
 }

@@ -7,6 +7,7 @@ export interface ProfileUpdatePayload {
     last_name?: string;
     email?: string;
     phone_number?: string;
+    nationality?: string;
     profile?: {
         gender?: "M" | "F" | "O";
         date_of_birth?: string; // "YYYY-MM-DD"
@@ -24,6 +25,7 @@ export interface SendProfileOtpPayload {
     otp_type: "email" | "phone";
     email?: string;
     phone_number?: string;
+    otp_platform?: string;
 }
 
 export interface VerifyProfileOtpPayload {

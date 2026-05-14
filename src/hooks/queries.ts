@@ -225,7 +225,7 @@ export const useUserProfile = (enabled: boolean = true) => {
     return useQuery({
         queryKey: ["userProfile"],
         queryFn: () => profileApi.getMe(),
-        enabled: enabled && !user, // Only fetch if not already in Redux
+        enabled: enabled, // Always enable if requested (authenticated)
         staleTime: 5 * 60 * 1000,
         initialData: user || undefined,
     });

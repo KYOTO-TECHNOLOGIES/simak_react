@@ -57,7 +57,8 @@
     "otpSixDigits": "OTP (6 digits)",
     "otpExpiredText": "This OTP has expired. Please request a new one.",
     "verifyContinue": "Verify & Continue",
-    "termsSentence": "I agree to the <0>Terms</0> and <1>Privacy Policy</1>."
+    "termsSentence": "I agree to the <0>Terms</0> and <1>Privacy Policy</1>.",
+    "sendToWhatsApp": "Send OTP via WhatsApp"
   },
   "mobile": {
     "menu": "Menu",
@@ -80,7 +81,7 @@
     "brandDescription": "SIMAK FRESH is your premium online destination for the freshest seafood. We deliver high-quality, live and fresh catch directly from the ocean to your home, ensuring the best quality for every meal.",
     "headOffice": "Head office: Sharjah Media City, Sharjah, UAE",
     "branch": "Branch: Mushrif Mall - Abu Dhabi, UAE",
-    "timing": "8 AM – 8 PM, Mon–Sun",
+    "timing": "8 AM – 5 PM, Mon–Sun",
     "shop": "Shop",
     "company": "Company",
     "support": "Support",
@@ -112,9 +113,6 @@
     "companyLinks": [
       {
         "label": "About Us"
-      },
-      {
-        "label": "Our Story"
       },
       {
         "label": "Freshness Promise"
@@ -162,7 +160,7 @@
     "downloadOn": "Download on",
     "weAccept": "We Accept",
     "paymentMethods": {
-      "cards": "Cards",
+      "cards": "All Debit or Credit Cards",
       "upi": "UPI",
       "cod": "COD"
     }
@@ -170,7 +168,7 @@
   "about": {
     "title": "About Us",
     "heading": "From Dubai roots to global seafood expertise",
-    "intro": "Since 2016, we have established a strong presence in the seafood industry, operating across import, export, farming, retail, and wholesale. Having begun our journey in the Dubai market, we are now expanding into new horizons with SIMAK FRESH, bringing our expertise and passion for quality to a global scale.",
+    "intro": "Since 2016, we have established a strong presence in the seafood industry across the Middle East, Asia and Africa, operating in diverse sectors including importing, exporting, farming, retail, and wholesale. Having begun our journey in the Dubai market, we are now expanding into new horizons with SIMAK FRESH, bringing our expertise and passion for quality to a global scale.",
     "ourMissionTitle": "Our Mission",
     "ourMissionText": "We deliver the freshest seafood with complete transparency, exceptional service, and a commitment to sustainability. Every product is carefully sourced, expertly handled, and delivered with the quality our customers expect.",
     "ourMissionText2": "SIMAK FRESH is built on trust, reliability, and the belief that premium seafood should be available to families, restaurants, and retailers across the region and beyond.",

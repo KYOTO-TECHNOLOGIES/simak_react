@@ -4,7 +4,7 @@ import {
     ShoppingCart,
     User,
     MapPin,
-    Phone,
+    MessageCircle,
     LogOut,
     LogIn,
     Bell,
@@ -24,6 +24,8 @@ import { BRAND_COLORS } from '../../../constants/theme';
 import { BrandSignature } from '../../common/BrandSignature';
 import { BrandLogo } from '../../common/BrandLogo';
 
+import brandNameSvg from '../../../assets/SIMAK FRESH FINAL SVG-01 riz.svg';
+
 const Navbar: React.FC = () => {
     const dispatch = useAppDispatch();
     const navigate = useNavigate();
@@ -35,8 +37,6 @@ const Navbar: React.FC = () => {
 
     const { t } = useTranslation();
     const { setLanguage, currentLanguage, isArabic } = useLanguageToggle();
-
-
 
     useEffect(() => {
         const handleScroll = () => {
@@ -67,10 +67,15 @@ const Navbar: React.FC = () => {
                             <Package size={12} className="text-yellow-400" />
                             {t('top.trackOrder')}
                         </Link>
-                        <span className="hidden md:flex items-center gap-1.5 hover:text-white transition-colors cursor-pointer">
-                            <Phone size={12} className="text-yellow-400" />
+                        <a 
+                            href="https://wa.me/971545446111" 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="hidden md:flex items-center gap-1.5 hover:text-white transition-colors cursor-pointer"
+                        >
+                            <MessageCircle size={12} className="text-emerald-400" />
                             +971 545 446 111
-                        </span>
+                        </a>
                         <span className="hidden lg:inline-flex items-center text-cyan-300/60 font-bold uppercase tracking-wider text-[9px] border-l border-cyan-800 pl-5 ml-2">
                             {t('brand.motto')}
                         </span>
@@ -112,31 +117,39 @@ const Navbar: React.FC = () => {
                 className={`bg-white border-b border-slate-100 transition-shadow duration-300 ${isScrolled ? 'shadow-md' : ''
                     }`}
             >
-                <div className="  mx-auto px-4 sm:px-6 py-2 flex items-center justify-between gap-4">
-                    <Link to="/" className="shrink-0 flex items-center gap-2 group">
+                <div className="  mx-auto px-4 sm:px-6 py-2 flex items-center justify-between gap-10">
+                    <Link to="/" className="shrink-0 flex items-center gap-2 group ">
                         <BrandLogo size={40} />
-                        <div className="flex flex-col justify-center items-center text-center">
-                            <span 
-                                className="text-[20px] sm:text-[22px] uppercase leading-none"
-                                style={{ 
-                                    color: BRAND_COLORS.DARK_CYAN,
-                                    fontFamily: "'SF Pro Display', sans-serif",
-                                    fontWeight: 1000,
-                                    letterSpacing: "-0.01em"
-                                }}
-                            >
-                                {t('brand.name')}
-                            </span>
-                            <div className="mt-1 whitespace-nowrap">
-                                <BrandSignature
-                                    language={currentLanguage}
-                                    signatureText={t('brand.signature')}
-                                    color={BRAND_COLORS.ACCENT_CYAN}
-                                    size="sm"
-                                    wow={false}
-                                />
+                        {currentLanguage === 'en' ? (
+                            <img 
+                                src={brandNameSvg} 
+                                alt="Simak Fresh" 
+                                className="h-6 w-auto object-contain mt-0"
+                            />
+                        ) : (
+                            <div className="flex flex-col justify-center">
+                                <span
+                                    className="text-[15px] sm:text-[16px] uppercase leading-none"
+                                    style={{
+                                        color: BRAND_COLORS.DARK_CYAN,
+                                        fontFamily: "'SF Pro Display', sans-serif",
+                                        fontWeight: 1000,
+                                        letterSpacing: "-0.01em"
+                                    }}
+                                >
+                                    {t('brand.name')}
+                                </span>
+                                <div className="mt-1 whitespace-nowrap">
+                                    <BrandSignature
+                                        language={currentLanguage}
+                                        signatureText={t('brand.signature')}
+                                        color={BRAND_COLORS.ACCENT_CYAN}
+                                        size="sm"
+                                        wow={false}
+                                    />
+                                </div>
                             </div>
-                        </div>
+                        )}
                     </Link>
 
                     {/* Actions */}
@@ -204,7 +217,7 @@ const Navbar: React.FC = () => {
                                             to="/support"
                                             className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 transition-colors text-xs font-bold text-slate-600 hover:text-cyan-600"
                                         >
-                                            <Phone size={14} /> {t('top.support')}
+                                            <MessageCircle size={14} /> {t('top.support')}
                                         </Link>
                                         <div className="h-px bg-slate-100 my-1" />
                                         <button
@@ -333,7 +346,7 @@ const Navbar: React.FC = () => {
                                     {[
                                         ...(isAuthenticated ? [{ key: 'track', label: t('top.trackOrder'), href: '/orders', icon: <MapPin size={18} /> }] : []),
                                         { key: 'notifications', label: t('account.notifications'), href: '/notifications', icon: <Bell size={18} /> },
-                                        { key: 'support', label: t('top.support'), href: '/support', icon: <Phone size={18} /> },
+                                        { key: 'support', label: t('top.support'), href: '/support', icon: <MessageCircle size={18} /> },
                                     ].map((link) => (
                                         <Link
                                             key={link.key}

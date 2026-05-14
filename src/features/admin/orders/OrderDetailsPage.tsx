@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ChevronLeft, Download, Package, MessageSquare, Send, Navigation, Truck, UserCheck } from "lucide-react";
+import { ChevronLeft, Download, Package, MessageSquare, Send, Navigation, Truck, UserCheck, Loader2 } from "lucide-react";
 import { ordersApi, type DeliverySlotDto } from "./ordersApi";
 import { paymentsApi } from "../payments/paymentsApi";
 import type { OrderStatus, PaymentStatus } from "./ordersSlice";
@@ -681,7 +681,7 @@ const OrderDetailsPage: React.FC = () => {
                       disabled={!selectedStatus || isUpdating}
                       className="w-full py-2.5 bg-black text-white text-xs font-bold rounded-lg hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
                     >
-                      <Send size={12} />
+                      {isUpdating ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
                       {isUpdating ? 'Updating...' : selectedStatus ? `Update to "${selectedStatus}"` : 'Select a status above'}
                     </button>
                   </div>
@@ -1064,7 +1064,7 @@ const OrderDetailsPage: React.FC = () => {
                       disabled={!selectedBoyId || assigning}
                       className="w-full py-2 bg-black text-white text-xs font-bold rounded-lg hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
                     >
-                      <Truck size={12} />
+                      {assigning ? <Loader2 size={12} className="animate-spin" /> : <Truck size={12} />}
                       {assigning ? "Assigning…" : order.deliveryAssignment ? "Change Boy" : "Assign"}
                     </button>
                     {assignMsg && (

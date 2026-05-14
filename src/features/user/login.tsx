@@ -7,7 +7,6 @@ import {
   RefreshCcw,
   Check,
   Timer,
-  ChevronDown,
   AlertCircle,
   ShieldX
 } from "lucide-react";
@@ -97,7 +96,7 @@ const Login: React.FC = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { t } = useTranslation("common");
-  const { isArabic } = useLanguageToggle();
+  useLanguageToggle();
 
   const { otp_type, step, isLoading, error, value, isAuthenticated, user } = useSelector(
     (s: any) => s.auth
@@ -107,8 +106,9 @@ const Login: React.FC = () => {
   const [localValue, setLocalValue] = useState(value || "");
   const [otp, setOtp] = useState("");
   const [agreeTerms, setAgreeTerms] = useState(false);
+  const [sendToWhatsApp, setSendToWhatsApp] = useState(false);
   const [countryCode, setCountryCode] = useState("+971");
-  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const {
@@ -122,8 +122,6 @@ const Login: React.FC = () => {
 
   const countries = [
     { code: "+971", flag: "https://flagcdn.com/w40/ae.png", name: "UAE" },
-    { code: "+91", flag: "https://flagcdn.com/w40/in.png", name: "India" },
-    { code: "+86", flag: "https://flagcdn.com/w40/cn.png", name: "China" },
   ];
 
   const selectedCountry = countries.find((c) => c.code === countryCode) || countries[0];
@@ -205,6 +203,7 @@ const Login: React.FC = () => {
         otp_type: otp_type,
         phone_number: getFormattedPhone(),
         email: otp_type === "email" ? localValue.trim() : undefined,
+        otp_platform: sendToWhatsApp ? "whatsapp" : undefined,
       })
     );
     startTimers();
@@ -240,6 +239,7 @@ const Login: React.FC = () => {
         otp_type: otp_type,
         phone_number: otp_type === "phone" ? `${countryCode}${v.replace(/^0+/, '')}` : undefined,
         email: otp_type === "email" ? v : undefined,
+        otp_platform: sendToWhatsApp ? "whatsapp" : undefined,
       })
     );
     startTimers();
@@ -309,37 +309,10 @@ const Login: React.FC = () => {
                     )}
 
                     {otp_type === "phone" ? (
-                      <div className="flex gap-2 flex-1">
-                        <div className="relative" ref={dropdownRef}>
-                          <button
-                            type="button"
-                            onClick={() => setDropdownOpen(!dropdownOpen)}
-                            className="h-9 rounded-lg border-b border-zinc-100 bg-transparent px-2 text-sm outline-none transition focus:border-cyan-600 cursor-pointer flex items-center gap-2 hover:bg-zinc-50"
-                          >
-                            <img src={selectedCountry.flag} alt={selectedCountry.name} className="w-5 h-[14px] object-cover rounded-sm shadow-sm" />
-                            <span className="text-xs font-medium text-zinc-600">{selectedCountry.code}</span>
-                            <ChevronDown size={12} className={`text-zinc-400 transition-transform ${dropdownOpen ? "rotate-180" : ""}`} />
-                          </button>
-
-                          {dropdownOpen && (
-                            <div className={`absolute top-full ${isArabic ? 'right-0' : 'left-0'} mt-1 w-40 bg-white border border-zinc-200 rounded-lg shadow-lg z-50 overflow-hidden`}>
-                              {countries.map((c) => (
-                                <button
-                                  key={c.code}
-                                  type="button"
-                                  onClick={() => {
-                                    setCountryCode(c.code);
-                                    setDropdownOpen(false);
-                                  }}
-                                  className={`w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-cyan-50 transition-colors ${c.code === countryCode ? "bg-cyan-50 text-cyan-600" : "text-zinc-700"}`}
-                                >
-                                  <img src={c.flag} alt={c.name} className="w-5 h-[14px] object-cover rounded-sm shadow-sm" />
-                                  <span className="font-medium">{c.name}</span>
-                                  <span className={`${isArabic ? 'mr-auto' : 'ml-auto'} text-zinc-400 text-[10px]`}>{c.code}</span>
-                                </button>
-                              ))}
-                            </div>
-                          )}
+                      <div className="flex gap-2 flex-1 items-center">
+                        <div className="flex items-center gap-2 px-1 text-sm text-zinc-700 shrink-0 border-r border-zinc-100 pr-2 mr-2">
+                          <img src={selectedCountry.flag} alt="flag" className="w-5 h-3.5 object-cover rounded-sm shadow-sm" />
+                          <span className="font-bold text-zinc-600">{selectedCountry.code}</span>
                         </div>
 
                         <input
@@ -351,7 +324,7 @@ const Login: React.FC = () => {
                           onFocus={() => setFocused("id")}
                           onBlur={() => setFocused(null)}
                           placeholder={`${phoneRequirements.length} digits`}
-                          className="flex-1 bg-transparent outline-none text-sm font-medium tracking-tight placeholder:text-zinc-200"
+                          className="flex-1 bg-transparent outline-none text-sm font-medium tracking-tight placeholder:text-zinc-200 pl-2"
                         />
                       </div>
                     ) : (
@@ -369,37 +342,56 @@ const Login: React.FC = () => {
                   </div>
                 </div>
 
-                <label className="mt-4 flex items-start gap-3 cursor-pointer select-none">
-                  <span className="relative mt-0.5 h-4 w-4 rounded-md border border-zinc-200 flex items-center justify-center">
-                    <input
-                      type="checkbox"
-                      className="peer absolute inset-0 opacity-0 cursor-pointer"
-                      checked={agreeTerms}
-                      onChange={(e) => setAgreeTerms(e.target.checked)}
-                    />
-                    <Check size={12} strokeWidth={3} className="opacity-0 peer-checked:opacity-100 transition-opacity text-cyan-600" />
-                  </span>
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 leading-relaxed">
-                    <Trans
-                      i18nKey="auth.termsSentence"
-                      ns="common"
-                      components={[
-                        <a
-                          href="/terms-of-service"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-cyan-600 hover:text-cyan-700 underline underline-offset-2 transition-colors"
-                        />,
-                        <a
-                          href="/privacy-policy"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-cyan-600 hover:text-cyan-700 underline underline-offset-2 transition-colors"
-                        />,
-                      ]}
-                    />
-                  </span>
-                </label>
+                <div className="mt-4 space-y-3">
+                  {otp_type === "phone" && (
+                    <label className="flex items-center gap-3 cursor-pointer select-none group/wa">
+                      <div className="relative h-4 w-4 rounded-md border border-zinc-200 flex items-center justify-center transition-all group-hover/wa:border-green-500">
+                        <input
+                          type="checkbox"
+                          className="peer absolute inset-0 opacity-0 cursor-pointer"
+                          checked={sendToWhatsApp}
+                          onChange={(e) => setSendToWhatsApp(e.target.checked)}
+                        />
+                        <Check size={12} strokeWidth={3} className="opacity-0 peer-checked:opacity-100 transition-opacity text-green-600" />
+                      </div>
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 group-hover/wa:text-green-600 transition-colors">
+                        {t("auth.sendToWhatsApp", "Send OTP via WhatsApp")}
+                      </span>
+                    </label>
+                  )}
+
+                  <label className="flex items-start gap-3 cursor-pointer select-none group/terms">
+                    <div className="relative mt-0.5 h-4 w-4 rounded-md border border-zinc-200 flex items-center justify-center transition-all group-hover/terms:border-cyan-500">
+                      <input
+                        type="checkbox"
+                        className="peer absolute inset-0 opacity-0 cursor-pointer"
+                        checked={agreeTerms}
+                        onChange={(e) => setAgreeTerms(e.target.checked)}
+                      />
+                      <Check size={12} strokeWidth={3} className="opacity-0 peer-checked:opacity-100 transition-opacity text-cyan-600" />
+                    </div>
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 leading-relaxed group-hover/terms:text-zinc-600 transition-colors">
+                      <Trans
+                        i18nKey="auth.termsSentence"
+                        ns="common"
+                        components={[
+                          <a
+                            href="/terms-of-service"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-cyan-600 hover:text-cyan-700 underline underline-offset-2 transition-colors"
+                          />,
+                          <a
+                            href="/privacy-policy"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-cyan-600 hover:text-cyan-700 underline underline-offset-2 transition-colors"
+                          />,
+                        ]}
+                      />
+                    </span>
+                  </label>
+                </div>
 
                 {/* ✅ Clean Text Error / Inactive Account Alert */}
                 {displayError && (

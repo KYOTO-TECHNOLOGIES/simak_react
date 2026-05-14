@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate, Link } from "react-router-dom";
+import { NATIONALITY_CHOICES } from "../../constants/nationalities";
 import {
     User, Mail, Phone, LogOut, Camera, Save, Loader2, Calendar,
     MapPin, Package, Plus, Edit3, X, Home, Briefcase, Globe, Star,
     ChevronRight, CheckCircle, Hash, Clock, Truck, XCircle, AlertCircle,
-    ChevronDown, Gift, Copy, Share2, Percent, Tag
+    ChevronDown, Gift, Copy, Share2, Percent, Tag, Check
 } from "lucide-react";
 import referralInviteImg from "../../assets/referral/referral_invite.png";
 import referralPurchaseImg from "../../assets/referral/referral_purchase.png";
@@ -37,7 +38,13 @@ interface ProfilePageProps {
 }
 
 const EMIRATES = [
-    { value: "abu_dhabi", label: "Abu Dhabi" },
+    { value: "abu_dhabi", label: "Abu Dhabi", available: true },
+    { value: "dubai", label: "Dubai", available: false },
+    { value: "sharjah", label: "Sharjah", available: false },
+    { value: "ajman", label: "Ajman", available: false },
+    { value: "umm_al_quwain", label: "Umm Al Quwain", available: false },
+    { value: "ras_al_khaimah", label: "Ras Al Khaimah", available: false },
+    { value: "fujairah", label: "Fujairah", available: false },
 ];
 
 type CouponStatusKey = "active" | "inactive" | "expired" | "redeemed" | "deleted";
@@ -306,6 +313,12 @@ const ProfilePage: React.FC<ProfilePageProps> = () => {
                                             <span className="truncate max-w-[150px] sm:max-w-[200px] lg:max-w-[220px]"><BackendData value={displayUser.email} /></span>
                                         </div>
                                     )}
+                                    {displayUser?.nationality && (
+                                        <div className="flex items-center gap-2 text-[11px] md:text-xs text-slate-400">
+                                            <Globe size={12} className="shrink-0" />
+                                            <span>{NATIONALITY_CHOICES.find(n => n.code === displayUser.nationality)?.label || displayUser.nationality}</span>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -419,6 +432,7 @@ const PersonalInfoTab: React.FC<PersonalInfoTabProps> = ({ profileData, loading,
     const [gender, setGender] = useState<"M" | "F" | "O" | "">("");
     const [dob, setDob] = useState("");
     const [email, setEmail] = useState("");
+    const [nationality, setNationality] = useState("");
     const [preferredLanguage, setPreferredLanguage] = useState("");
     const [saving, setSaving] = useState(false);
 
@@ -443,6 +457,7 @@ const PersonalInfoTab: React.FC<PersonalInfoTabProps> = ({ profileData, loading,
         sending: boolean;
         verifying: boolean;
         error: string | null;
+        whatsapp: boolean;
     }>({
         isOpen: false,
         type: "email",
@@ -451,17 +466,16 @@ const PersonalInfoTab: React.FC<PersonalInfoTabProps> = ({ profileData, loading,
         otpCode: "",
         sending: false,
         verifying: false,
-        error: null
+        error: null,
+        whatsapp: false
     });
 
     // Country selector state for phone verification (reuse login's flags)
     const otpCountries = [
         { code: "+971", flag: "https://flagcdn.com/w40/ae.png", name: "UAE" },
-        { code: "+91", flag: "https://flagcdn.com/w40/in.png", name: "India" },
-        { code: "+86", flag: "https://flagcdn.com/w40/cn.png", name: "China" },
     ];
-    const [otpCountryCode, setOtpCountryCode] = useState("+971");
-    const [otpDropdownOpen, setOtpDropdownOpen] = useState(false);
+    const [otpCountryCode] = useState("+971");
+    const [, setOtpDropdownOpen] = useState(false);
     const otpDropdownRef = useRef<HTMLDivElement>(null);
     useEffect(() => {
         const handler = (e: MouseEvent) => {
@@ -500,6 +514,7 @@ const PersonalInfoTab: React.FC<PersonalInfoTabProps> = ({ profileData, loading,
             setGender((profileData.profile?.gender as "M" | "F" | "O" | "") || "");
             setDob(profileData.profile?.date_of_birth || "");
             setEmail(profileData.email || "");
+            setNationality(profileData.nationality || "");
             setPreferredLanguage(profileData.profile?.preferred_language || "en");
         }
     }, [profileData]);
@@ -517,6 +532,7 @@ const PersonalInfoTab: React.FC<PersonalInfoTabProps> = ({ profileData, loading,
             const payload: ProfileUpdatePayload = {
                 first_name: firstName.trim(),
                 last_name: lastName.trim(),
+                nationality,
                 profile: {
                     gender: gender as "M" | "F" | "O",
                     ...(dob ? { date_of_birth: dob } : {}), // Only include if not empty
@@ -552,6 +568,7 @@ const PersonalInfoTab: React.FC<PersonalInfoTabProps> = ({ profileData, loading,
             setLastName(profileData.last_name || "");
             setGender((profileData.profile?.gender as "M" | "F" | "O" | "") || "");
             setDob(profileData.profile?.date_of_birth || "");
+            setNationality(profileData.nationality || "");
             setPreferredLanguage(profileData.profile?.preferred_language || "en");
         }
         setEditing(false);
@@ -577,7 +594,8 @@ const PersonalInfoTab: React.FC<PersonalInfoTabProps> = ({ profileData, loading,
             otpCode: "",
             sending: false,
             verifying: false,
-            error: null
+            error: null,
+            whatsapp: false
         });
     };
 
@@ -604,7 +622,8 @@ const PersonalInfoTab: React.FC<PersonalInfoTabProps> = ({ profileData, loading,
                 otp_type: type,
                 ...(type === "email"
                     ? { email: newValue }
-                    : { phone_number: `${otpCountryCode}${newValue.replace(/^0+/, "")}` })
+                    : { phone_number: `${otpCountryCode}${newValue.replace(/^0+/, "")}` }),
+                otp_platform: otpModalState.whatsapp ? "whatsapp" : undefined
             });
 
             if (isValueChanged) {
@@ -729,32 +748,9 @@ const PersonalInfoTab: React.FC<PersonalInfoTabProps> = ({ profileData, loading,
                                                 {t("profile.personalInfo.phone")}
                                             </label>
                                             <div className="flex gap-2 mt-1">
-                                                <div className="relative" ref={otpDropdownRef}>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setOtpDropdownOpen(!otpDropdownOpen)}
-                                                        className="h-11 px-3 rounded-xl border border-slate-200 bg-white flex items-center gap-2 text-sm hover:bg-slate-50"
-                                                    >
-                                                        <img src={(otpCountries.find(c => c.code === otpCountryCode) || otpCountries[0]).flag} alt="flag" className="w-5 h-[14px] object-cover rounded-sm" />
-                                                        <span className="text-xs font-medium text-slate-700">{otpCountryCode}</span>
-                                                        <ChevronDown size={12} className={`text-slate-400 transition-transform ${otpDropdownOpen ? "rotate-180" : ""}`} />
-                                                    </button>
-                                                    {otpDropdownOpen && (
-                                                        <div className="absolute top-full left-0 mt-1 w-44 bg-white border border-slate-200 rounded-lg shadow-lg z-50">
-                                                            {otpCountries.map((c) => (
-                                                                <button
-                                                                    key={c.code}
-                                                                    type="button"
-                                                                    onClick={() => { setOtpCountryCode(c.code); setOtpDropdownOpen(false); }}
-                                                                    className={`w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-cyan-50 ${c.code === otpCountryCode ? "bg-cyan-50 text-cyan-600" : "text-slate-700"}`}
-                                                                >
-                                                                    <img src={c.flag} alt={c.name} className="w-5 h-[14px] object-cover rounded-sm" />
-                                                                    <span className="font-medium">{c.name}</span>
-                                                                    <span className="ms-auto text-slate-400">{c.code}</span>
-                                                                </button>
-                                                            ))}
-                                                        </div>
-                                                    )}
+                                                <div className="flex items-center gap-2 px-3 h-11 rounded-xl border border-slate-200 bg-white text-sm">
+                                                    <img src={otpCountries[0].flag} alt="flag" className="w-5 h-[14px] object-cover rounded-sm" />
+                                                    <span className="font-bold text-slate-700">{otpCountryCode}</span>
                                                 </div>
                                                 <input
                                                     type="tel"
@@ -772,6 +768,23 @@ const PersonalInfoTab: React.FC<PersonalInfoTabProps> = ({ profileData, loading,
                                                 </p>
                                             )}
                                         </div>
+                                    )}
+
+                                    {otpModalState.type === "phone" && (
+                                        <label className="flex items-center gap-2 cursor-pointer select-none group/wa ms-1">
+                                            <div className="relative h-4 w-4 rounded-md border border-slate-200 flex items-center justify-center transition-all group-hover/wa:border-green-500">
+                                                <input
+                                                    type="checkbox"
+                                                    className="peer absolute inset-0 opacity-0 cursor-pointer"
+                                                    checked={otpModalState.whatsapp}
+                                                    onChange={(e) => setOtpModalState(prev => ({ ...prev, whatsapp: e.target.checked }))}
+                                                />
+                                                <Check size={12} strokeWidth={3} className="opacity-0 peer-checked:opacity-100 transition-opacity text-green-600" />
+                                            </div>
+                                            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 group-hover/wa:text-green-600 transition-colors">
+                                                {t("auth.sendToWhatsApp", "Send OTP via WhatsApp")}
+                                            </span>
+                                        </label>
                                     )}
                                     <button
                                         onClick={handleSendOtp}
@@ -977,6 +990,32 @@ const PersonalInfoTab: React.FC<PersonalInfoTabProps> = ({ profileData, loading,
                         <div className="px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-xs sm:text-sm font-medium text-slate-700 flex items-center gap-2">
                             <Calendar size={14} className="text-slate-400 shrink-0" />
                             {dob ? new Date(dob + "T00:00:00").toLocaleDateString("en-AE", { year: "numeric", month: "long", day: "numeric" }) : "—"}
+                        </div>
+                    )}
+                </div>
+
+                {/* Nationality */}
+                <div className="space-y-2">
+                    <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 ms-1">{t("profile.personalInfo.nationality", "Nationality")}</label>
+                    {editing ? (
+                        <div className="relative">
+                            <Globe size={16} className="absolute start-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                            <select
+                                value={nationality}
+                                onChange={(e) => setNationality(e.target.value)}
+                                className="w-full ps-11 pe-3 py-3 bg-slate-50 border border-slate-100 rounded-xl text-xs sm:text-sm font-medium text-slate-700 focus:bg-white focus:border-slate-300 outline-none appearance-none"
+                            >
+                                <option value="">{t("profile.personalInfo.selectNationality", "Select Nationality")}</option>
+                                {NATIONALITY_CHOICES.map((n) => (
+                                    <option key={n.code} value={n.code}>{n.label}</option>
+                                ))}
+                            </select>
+                            <ChevronDown size={14} className="absolute end-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                        </div>
+                    ) : (
+                        <div className="px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-xs sm:text-sm font-medium text-slate-700 flex items-center gap-2">
+                            <Globe size={14} className="text-slate-400 shrink-0" />
+                            {NATIONALITY_CHOICES.find(n => n.code === nationality)?.label || nationality || "—"}
                         </div>
                     )}
                 </div>
@@ -1871,19 +1910,44 @@ const AddressesTab: React.FC<{ onSuccess: (msg: string) => void; onError: (msg: 
                                 </div>
 
                                 {/* Emirate */}
-                                <div className="space-y-1">
+                                <div className="space-y-1.5 sm:col-span-2">
                                     <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{t("profile.addresses.emirate")}</label>
-                                    <div className="relative">
-                                        <select
-                                            value={form.emirate}
-                                            onChange={(e) => setForm((p) => ({ ...p, emirate: e.target.value }))}
-                                            className="profile-field-input appearance-none"
-                                        >
-                                            <option value="">Select</option>
-                                            {EMIRATES.map((em) => <option key={em.value} value={em.value}>{em.label}</option>)}
-                                        </select>
-                                        <ChevronDown size={14} className="absolute end-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                                        {EMIRATES.map((em) => {
+                                            const isSelected = form.emirate === em.value;
+                                            const isAvailable = em.available;
+                                            return (
+                                                <button
+                                                    key={em.value}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        if (!isAvailable) return;
+                                                        setForm((p) => ({ ...p, emirate: em.value }));
+                                                        if (addrErrors.emirate) setAddrErrors(prev => { const n = { ...prev }; delete n.emirate; return n; });
+                                                    }}
+                                                    className={`relative px-2 py-2.5 rounded-xl text-xs font-bold text-center transition-all border-2 ${
+                                                        isSelected && isAvailable
+                                                            ? "border-cyan-500 bg-cyan-50 text-cyan-700 shadow-sm ring-2 ring-cyan-500/10"
+                                                            : isAvailable
+                                                                ? "border-slate-200 bg-white text-slate-700 hover:border-cyan-300 hover:bg-cyan-50/50 cursor-pointer"
+                                                                : "border-slate-100 bg-slate-50 text-slate-300 cursor-not-allowed"
+                                                    }`}
+                                                    disabled={!isAvailable}
+                                                >
+                                                    {em.label}
+                                                    {!isAvailable && (
+                                                        <span className="block text-[8px] font-semibold text-slate-400 mt-0.5 leading-tight">Not available yet</span>
+                                                    )}
+                                                    {isSelected && isAvailable && (
+                                                        <span className="absolute -top-1 -end-1 w-4 h-4 bg-cyan-500 rounded-full flex items-center justify-center">
+                                                            <Check size={10} className="text-white" />
+                                                        </span>
+                                                    )}
+                                                </button>
+                                            );
+                                        })}
                                     </div>
+                                    {addrErrors.emirate && <p className="text-[10px] text-rose-500 font-medium px-1">{addrErrors.emirate}</p>}
                                 </div>
                             </div>
 

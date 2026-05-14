@@ -57,7 +57,8 @@
     "otpSixDigits": "验证码（6 位）",
     "otpExpiredText": "该验证码已过期，请重新获取。",
     "verifyContinue": "验证并继续",
-    "termsSentence": "我同意相关条款与隐私政策。"
+    "termsSentence": "我同意相关条款与隐私政策。",
+    "sendToWhatsApp": "通过 WhatsApp 发送验证码"
   },
   "mobile": {
     "menu": "菜单",
@@ -80,7 +81,7 @@
     "brandDescription": "思马克新鲜是您购买最鲜活海鲜的首选在线平台。我们将高品质、鲜活及新鲜的渔获直接从大海送到您家，确保每一餐都能享受到极致的鲜美与品质。",
     "headOffice": "总公司：阿联酋，沙迦，沙迦媒体城",
     "branch": "分店：阿联酋，阿布扎比，Mushrif 购物中心",
-    "timing": "周一至周日，早上 8点 – 晚上 8点",
+    "timing": "周一至周日，早上 8点 – 下午 5点",
     "shop": "商城",
     "company": "公司",
     "support": "客户支持",
@@ -112,9 +113,6 @@
     "companyLinks": [
       {
         "label": "关于我们"
-      },
-      {
-        "label": "我们的故事"
       },
       {
         "label": "新鲜承诺"

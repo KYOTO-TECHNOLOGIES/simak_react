@@ -34,15 +34,27 @@ function App() {
       }
     };
     const handleOnline = () => {
-      if (window.location.pathname === "/network-error") {
+      const path = window.location.pathname;
+      if (path === "/network-error" || path === "/500") {
         try { reloadErrorReturnPath(); } catch {}
       }
     };
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible" && navigator.onLine) {
+        const path = window.location.pathname;
+        if (path === "/network-error" || path === "/500") {
+          try { reloadErrorReturnPath(); } catch {}
+        }
+      }
+    };
+
     window.addEventListener("offline", handleOffline);
     window.addEventListener("online", handleOnline);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => {
       window.removeEventListener("offline", handleOffline);
       window.removeEventListener("online", handleOnline);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, []);
 

@@ -31,6 +31,7 @@ function* handleSendOtp(action: ReturnType<typeof requestOtp>): Generator<any, a
     if (action.payload.first_name) payload.first_name = action.payload.first_name;
     if (action.payload.last_name) payload.last_name = action.payload.last_name;
     if (action.payload.referral_code) payload.referral_code = action.payload.referral_code;
+    if (action.payload.otp_platform) payload.otp_platform = action.payload.otp_platform;
 
     yield call(authApi.sendOtp, payload);
     yield put(setStep("otp"));

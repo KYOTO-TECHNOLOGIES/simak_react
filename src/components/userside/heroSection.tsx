@@ -1,5 +1,5 @@
-﻿import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { ChevronRight, Sparkles, Zap, ShieldCheck, Clock, Gift, ShoppingBag } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { ChevronRight, Zap, Clock, ShoppingBag, Truck, Fish } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -16,15 +16,7 @@ const Hero: React.FC = () => {
   const { data: allBanners, isLoading: loading } = useBanners();
   const { data: deliveryOffers = [] } = useDeliveryOffers(i18n.language);
 
-  // Colorful variants for the items
-  const itemStyles = [
-    { bg: 'bg-rose-50', text: 'text-rose-600', icon: 'bg-rose-100', border: 'border-rose-100', iconComp: Sparkles },
-    { bg: 'bg-amber-50', text: 'text-amber-600', icon: 'bg-amber-100', border: 'border-amber-100', iconComp: Zap },
-    { bg: 'bg-emerald-50', text: 'text-emerald-600', icon: 'bg-emerald-100', border: 'border-emerald-100', iconComp: ShieldCheck },
-    { bg: 'bg-cyan-50', text: 'text-cyan-600', icon: 'bg-cyan-100', border: 'border-cyan-100', iconComp: Clock },
-    { bg: 'bg-violet-50', text: 'text-violet-600', icon: 'bg-violet-100', border: 'border-violet-100', iconComp: Gift },
-    { bg: 'bg-blue-50', text: 'text-blue-600', icon: 'bg-blue-100', border: 'border-blue-100', iconComp: ShoppingBag },
-  ];
+  // Colorful variants for the items is removed as it's unused
 
   const banners = useMemo(() => {
     if (!allBanners) return [];
@@ -42,6 +34,61 @@ const Hero: React.FC = () => {
     setCurrent(i);
   };
 
+  const promoTickerItems = useMemo(() => {
+    const items = deliveryOffers.map((m) => String(m).trim()).filter(Boolean);
+    return items.length > 0 ? items : [
+      t('hero.promoOne', 'Fast UAE Delivery'),
+      t('hero.promoTwo', 'Daily Fresh Deals'),
+      t('hero.promoThree', 'Verified Quality'),
+      t('hero.promoFour', 'Easy 7-Day Returns')
+    ];
+  }, [deliveryOffers, t]);
+
+  const getMessageConfig = (msg: string, index: number) => {
+    const lower = msg.toLowerCase();
+    
+    // Purchase / Rewards / Free Delivery -> BRAND CYAN
+    if (lower.includes('aed') || lower.includes('purchase') || lower.includes('free delivery')) {
+      return { 
+        Icon: ShoppingBag, 
+        color: 'text-cyan-700', 
+        bg: 'bg-cyan-50/70', 
+        border: 'border-cyan-100',
+        iconColor: 'text-cyan-600'
+      };
+    }
+    
+    // Timing / Delivery Logistics -> BRAND GOLD/AMBER
+    if (lower.includes('delivery') || lower.includes('shipping') || lower.includes('tomorrow') || lower.includes('now')) {
+      return { 
+        Icon: Truck, 
+        color: 'text-amber-700', 
+        bg: 'bg-amber-50/70', 
+        border: 'border-amber-100',
+        iconColor: 'text-amber-600'
+      };
+    }
+
+    // Freshness / Quality -> SOFT CYAN
+    if (lower.includes('fish') || lower.includes('fresh') || lower.includes('quality')) {
+      return { 
+        Icon: Fish, 
+        color: 'text-cyan-700', 
+        bg: 'bg-cyan-50/70', 
+        border: 'border-cyan-100',
+        iconColor: 'text-cyan-600'
+      };
+    }
+
+    // Fallback -> Brand Colors
+    const fallbacks = [
+      { Icon: Zap, color: 'text-cyan-700', bg: 'bg-cyan-50/70', border: 'border-cyan-100', iconColor: 'text-cyan-600' },
+      { Icon: Clock, color: 'text-amber-700', bg: 'bg-amber-50/70', border: 'border-amber-100', iconColor: 'text-amber-600' },
+    ];
+    
+    return fallbacks[index % fallbacks.length];
+  };
+
   useEffect(() => {
     if (banners.length <= 1) return;
     const id = setInterval(next, 8000);
@@ -55,15 +102,7 @@ const Hero: React.FC = () => {
   const tag = media?.tag;
   const cta = media?.cta_text || null;
 
-  const promoTickerItems = useMemo(() => {
-    const items = deliveryOffers.map((m) => String(m).trim()).filter(Boolean);
-    return items.length > 0 ? items : [
-      t('hero.promoOne', 'Fast UAE Delivery'),
-      t('hero.promoTwo', 'Daily Fresh Deals'),
-      t('hero.promoThree', 'Verified Quality'),
-      t('hero.promoFour', 'Easy 7-Day Returns')
-    ];
-  }, [deliveryOffers, t]);
+
 
   if (loading) return (
     <div className="w-full h-105 bg-slate-50 flex items-center justify-center">
@@ -122,56 +161,57 @@ const Hero: React.FC = () => {
         </section>
       )}
 
-      {/* NEW COLORFUL BEAUTIFUL SCROLL */}
+      {/* RESPONSIVE TRUST BAR */}
       {promoTickerItems.length > 0 && (
-        <div className="relative mt-6 overflow-hidden">
-          <div className="py-2">
-            <div
-              dir={isRtl ? 'rtl' : 'ltr'}
-              className="beautiful-ticker-track flex items-center w-max"
-            >
-              {[0, 1, 2].map((groupIndex) => (
-                <div key={groupIndex} className="flex items-center">
-                  {promoTickerItems.map((message, index) => {
-                    const style = itemStyles[index % itemStyles.length];
-                    const Icon = style.iconComp;
-                    return (
-                      <div
-                        key={`${groupIndex}-${index}`}
-                        className={`flex items-center gap-3 mx-2.5 px-5 py-3 rounded-2xl border ${style.bg} ${style.border} shadow-sm transition-transform hover:scale-105 duration-300`}
-                      >
-                        <div className={`p-2 rounded-xl ${style.icon} ${style.text}`}>
-                          <Icon size={18} strokeWidth={2.5} />
-                        </div>
-                        <span className={`text-sm md:text-base font-bold whitespace-nowrap ${style.text}`}>
-                          {message}
-                        </span>
-                      </div>
-                    );
-                  })}
+        <div className="mx-auto px-4 sm:px-6 mt-4">
+          <div className="flex sm:hidden flex-col gap-2">
+            {promoTickerItems.map((message, index) => {
+              const { Icon, color, bg, border, iconColor } = getMessageConfig(message, index);
+              return (
+                <div
+                  key={index}
+                  className={`flex items-center gap-4 py-3 px-4 ${bg} border ${border} rounded-2xl transition-all active:scale-[0.99]`}
+                >
+                  <div className="w-10 h-10 rounded-xl bg-white shadow-sm flex items-center justify-center shrink-0">
+                    <Icon size={20} strokeWidth={2.5} className={iconColor} />
+                  </div>
+                  <span className={`text-sm font-bold ${color} leading-tight`}>
+                    {message}
+                  </span>
                 </div>
-              ))}
-            </div>
+              );
+            })}
+          </div>
+
+          {/* Desktop: Full Horizontal List */}
+          <div 
+            dir={isRtl ? 'rtl' : 'ltr'}
+            className="hidden sm:flex flex-nowrap items-center overflow-x-auto no-scrollbar gap-3 py-3 px-4 bg-slate-50 border border-slate-100 rounded-full justify-center"
+          >
+            {promoTickerItems.map((message, index) => {
+              const { Icon, color, bg, border, iconColor } = getMessageConfig(message, index);
+              return (
+                <div
+                  key={index}
+                  className={`flex items-center shrink-0 group px-5 py-1.5 ${bg} border ${border} rounded-full transition-all duration-300 hover:shadow-sm`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-white shadow-sm flex items-center justify-center shrink-0">
+                      <Icon size={16} strokeWidth={2.5} className={iconColor} />
+                    </div>
+                    <span className={`text-xs sm:text-sm font-bold ${color} whitespace-nowrap`}>
+                      {message}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
-
       <style>{`
-        .beautiful-ticker-track {
-          display: flex;
-          animation: colorful-loop 40s linear infinite;
-        }
-
-        @keyframes colorful-loop {
-          0% { transform: translateX(0); }
-          100% {
-            transform: ${isRtl ? 'translateX(33.333%)' : 'translateX(-33.333%)'};
-          }
-        }
-
-        .beautiful-ticker-track:hover {
-          animation-play-state: paused;
-        }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style>
     </div>
   );

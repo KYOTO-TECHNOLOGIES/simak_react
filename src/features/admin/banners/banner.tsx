@@ -130,6 +130,13 @@ const BannersManagement: React.FC = () => {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        // Manual validation for hidden file input
+        if (!editingBanner && !desktopImage && formData.position !== 'popup') {
+            alert("Please upload a desktop image for the banner.");
+            return;
+        }
+
         const data = new FormData();
         data.append("key", String(formData.key || ""));
         data.append("title", String(formData.title || ""));
@@ -183,7 +190,8 @@ const BannersManagement: React.FC = () => {
                 </div>
                 <button
                     onClick={() => handleOpenModal()}
-                    className="flex items-center gap-2 px-6 py-3 bg-black text-white rounded-2xl font-bold hover:bg-slate-800 transition-all shadow-lg active:scale-95"
+                    disabled={loading}
+                    className="flex items-center gap-2 px-6 py-3 bg-black text-white rounded-2xl font-bold hover:bg-slate-800 transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100"
                 >
                     <Plus size={20} /> Add New Banner
                 </button>
@@ -295,13 +303,15 @@ const BannersManagement: React.FC = () => {
                                             </button>
                                             <button
                                                 onClick={() => handleOpenModal(banner)}
-                                                className="p-2.5 bg-slate-50 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all active:scale-90"
+                                                disabled={loading}
+                                                className="p-2.5 bg-slate-50 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all active:scale-90 disabled:opacity-50 disabled:cursor-not-allowed"
                                             >
                                                 <Edit2 size={18} />
                                             </button>
                                             <button
                                                 onClick={() => handleDelete(banner.id)}
-                                                className="p-2.5 bg-slate-50 text-slate-600 hover:text-cyan-600 hover:bg-cyan-50 rounded-xl transition-all active:scale-90"
+                                                disabled={loading}
+                                                className="p-2.5 bg-slate-50 text-slate-600 hover:text-cyan-600 hover:bg-cyan-50 rounded-xl transition-all active:scale-90 disabled:opacity-50 disabled:cursor-not-allowed"
                                             >
                                                 <Trash2 size={18} />
                                             </button>
@@ -382,37 +392,41 @@ const BannersManagement: React.FC = () => {
                                             />
                                         </div>
 
-                                        <div className="space-y-2">
-                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Description</label>
-                                            <textarea
-                                                rows={3}
-                                                value={formData.description}
-                                                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                                className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-black outline-none transition-all font-medium placeholder:text-slate-300"
-                                                placeholder="Full description..."
-                                            />
-                                        </div>
+                                        {formData.position !== 'popup' && (
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Description</label>
+                                                <textarea
+                                                    rows={3}
+                                                    value={formData.description}
+                                                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                                    className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-black outline-none transition-all font-medium placeholder:text-slate-300"
+                                                    placeholder="Full description..."
+                                                />
+                                            </div>
+                                        )}
 
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                            <div className="space-y-2">
-                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Tag</label>
-                                                <input
-                                                    value={formData.tag}
-                                                    onChange={(e) => setFormData({ ...formData, tag: e.target.value })}
-                                                    className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-black outline-none transition-all font-bold placeholder:text-slate-300"
-                                                    placeholder="e.g. SPECIAL"
-                                                />
+                                        {formData.position !== 'popup' && (
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                                <div className="space-y-2">
+                                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Tag</label>
+                                                    <input
+                                                        value={formData.tag}
+                                                        onChange={(e) => setFormData({ ...formData, tag: e.target.value })}
+                                                        className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-black outline-none transition-all font-bold placeholder:text-slate-300"
+                                                        placeholder="e.g. SPECIAL"
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Highlight</label>
+                                                    <input
+                                                        value={formData.highlight}
+                                                        onChange={(e) => setFormData({ ...formData, highlight: e.target.value })}
+                                                        className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-black outline-none transition-all font-bold placeholder:text-slate-300"
+                                                        placeholder="e.g. 30% OFF"
+                                                    />
+                                                </div>
                                             </div>
-                                            <div className="space-y-2">
-                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Highlight</label>
-                                                <input
-                                                    value={formData.highlight}
-                                                    onChange={(e) => setFormData({ ...formData, highlight: e.target.value })}
-                                                    className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-black outline-none transition-all font-bold placeholder:text-slate-300"
-                                                    placeholder="e.g. 30% OFF"
-                                                />
-                                            </div>
-                                        </div>
+                                        )}
 
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                             <div className="space-y-2">
@@ -513,7 +527,6 @@ const BannersManagement: React.FC = () => {
                                                     accept="image/*"
                                                     className="hidden"
                                                     onChange={(e) => handleImageChange(e, "desktop")}
-                                                    required={!editingBanner}
                                                 />
                                             </div>
                                         </div>
@@ -556,15 +569,26 @@ const BannersManagement: React.FC = () => {
                                     <button
                                         type="button"
                                         onClick={handleCloseModal}
-                                        className="flex-1 py-4 border border-slate-200 text-slate-600 rounded-2xl font-bold hover:bg-slate-50 transition-all active:scale-95"
+                                        disabled={loading}
+                                        className="flex-1 py-4 border border-slate-200 text-slate-600 rounded-2xl font-bold hover:bg-slate-50 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         Cancel
                                     </button>
                                     <button
                                         type="submit"
-                                        className="flex-[2] py-4 bg-black text-white rounded-2xl font-bold hover:bg-slate-800 transition-all shadow-xl shadow-slate-900/10 flex items-center justify-center gap-2 active:scale-95"
+                                        disabled={loading}
+                                        className="flex-[2] py-4 bg-black text-white rounded-2xl font-bold hover:bg-slate-800 transition-all shadow-xl shadow-slate-900/10 flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100"
                                     >
-                                        <Save size={20} /> Save Banner
+                                        {loading ? (
+                                            <>
+                                                <Loader2 size={20} className="animate-spin" />
+                                                Saving...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Save size={20} /> Save Banner
+                                            </>
+                                        )}
                                     </button>
                                 </div>
                             </form>

@@ -50,8 +50,9 @@ import {
   selectActionError,
 } from "./customersSlice";
 import type { Customer } from "./customersApi";
-import { useNavigate } from "react-router-dom";
-import { useLocation } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
+import { NATIONALITY_CHOICES } from "../../../constants/nationalities";
+
 
 /* --- Column visibility --- */
 type ColumnKey =
@@ -65,6 +66,7 @@ type ColumnKey =
   | "language"
   | "newsletter"
   | "joined"
+  | "nationality"
   | "actions";
 
 interface ColumnDef {
@@ -91,6 +93,7 @@ const COLUMNS: ColumnDef[] = [
   { key: "language", label: "Language", icon: <Globe size={12} />, defaultVisible: false },
   { key: "newsletter", label: "Newsletter", icon: <Bell size={12} />, defaultVisible: false },
   { key: "joined", label: "Joined", icon: <Calendar size={12} />, defaultVisible: true },
+  { key: "nationality", label: "Nationality", icon: <Globe size={12} />, defaultVisible: true, alwaysVisible: true },
   { key: "actions", label: "Actions", defaultVisible: true, alwaysVisible: true },
 ];
 
@@ -440,6 +443,14 @@ const CustomerRow = memo(function CustomerRow({
         </td>
       )}
 
+      {isVisible("nationality") && (
+        <td className="px-5 py-4">
+          <span className="text-xs font-medium text-[#52525B] uppercase">
+            {customer.nationality || "—"}
+          </span>
+        </td>
+      )}
+
       {isVisible("actions") && (
         <td className="px-5 py-4 text-right">
           <div className="flex items-center justify-end gap-1">
@@ -594,6 +605,7 @@ const CustomerDetailPanel = memo(function CustomerDetailPanel({
                 }
               />
               <InfoField label="Gender" value={customer.gender || "—"} />
+              <InfoField label="Nationality" value={customer.nationality || "—"} />
               <InfoField label="Language" value={customer.preferredLanguage.toUpperCase()} />
               <InfoField label="Google Linked">
                 <span
@@ -857,6 +869,7 @@ const CustomerManagement: React.FC = () => {
   const [roleFilter, setRoleFilter] = useState<RoleFilter>("All");
   const [verifiedFilter, setVerifiedFilter] = useState("");
   const [phoneFilter, setPhoneFilter] = useState("");
+  const [nationalityFilter, setNationalityFilter] = useState("");
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
 
@@ -941,12 +954,13 @@ const CustomerManagement: React.FC = () => {
         role: roleQueryValue,
         is_email_verified,
         is_phone_verified,
+        nationality: nationalityFilter || undefined,
         page,
         limit,
         offset,
       })
     );
-  }, [dispatch, debouncedSearch, statusFilter, roleQueryValue, verifiedFilter, page, limit]);
+  }, [dispatch, debouncedSearch, statusFilter, roleQueryValue, verifiedFilter, nationalityFilter, page, limit]);
 
   const handleReset = useCallback(() => {
     setSearchTerm("");
@@ -954,6 +968,7 @@ const CustomerManagement: React.FC = () => {
     setRoleFilter("All");
     setVerifiedFilter("");
     setPhoneFilter("");
+    setNationalityFilter("");
     setPage(1);
   }, []);
 
@@ -1278,6 +1293,7 @@ const CustomerManagement: React.FC = () => {
                 {isVisible("language") && <th className="px-5 py-4 text-xs font-bold text-[#A1A1AA] uppercase tracking-widest border-b border-[#EEEEEE] hidden xl:table-cell">Lang</th>}
                 {isVisible("newsletter") && <th className="px-5 py-4 text-xs font-bold text-[#A1A1AA] uppercase tracking-widest border-b border-[#EEEEEE] hidden xl:table-cell">Mail</th>}
                 {isVisible("joined") && <th className="px-5 py-4 text-xs font-bold text-[#A1A1AA] uppercase tracking-widest border-b border-[#EEEEEE] hidden lg:table-cell">Joined</th>}
+                {isVisible("nationality") && <th className="px-5 py-4 text-xs font-bold text-[#A1A1AA] uppercase tracking-widest border-b border-[#EEEEEE]">Nationality</th>}
                 {isVisible("actions") && <th className="px-5 py-4 text-right text-xs font-bold text-[#A1A1AA] uppercase tracking-widest border-b border-[#EEEEEE]">Actions</th>}
               </tr>
 
@@ -1402,6 +1418,25 @@ const CustomerManagement: React.FC = () => {
                   {isVisible("joined") && (
                     <td className="px-5 py-3">
                       <div className="text-[10px] text-[#A1A1AA] italic">—</div>
+                    </td>
+                  )}
+                  {isVisible("nationality") && (
+                    <td className="px-5 py-3">
+                      <select
+                        value={nationalityFilter}
+                        onChange={(e) => {
+                          setNationalityFilter(e.target.value);
+                          setPage(1);
+                        }}
+                        className="w-full p-2 bg-[#F9F9F9] border border-transparent rounded-md text-[11px] outline-none cursor-pointer focus:bg-white focus:border-[#EEEEEE]"
+                      >
+                        <option value="">All Nations</option>
+                        {NATIONALITY_CHOICES.map((n) => (
+                          <option key={n.code} value={n.code}>
+                            {n.label}
+                          </option>
+                        ))}
+                      </select>
                     </td>
                   )}
 

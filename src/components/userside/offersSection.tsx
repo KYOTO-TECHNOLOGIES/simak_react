@@ -16,9 +16,9 @@ import {
 import { useTranslation } from "react-i18next";
 import { type BannerDto } from "../../features/admin/banners/bannerApi";
 import { useBanners } from "../../hooks/queries";
-import simakLogo from "../../assets/SIMAK FRESH FINAL LOGO-01 (1).png";
+import { BrandLogo } from "../common/BrandLogo";
 
-/* ── Component ── */
+
 const OffersSection: React.FC = () => {
     const { t } = useTranslation("home");
     // ✅ TanStack Query — shared banner cache with Hero
@@ -351,11 +351,7 @@ const BannerCTA: React.FC<{ bannerOffer: any }> = ({ bannerOffer }) => {
             <div className="relative flex flex-col sm:flex-row items-center justify-between p-8 sm:p-12 gap-6 z-10 text-center sm:text-left">
                 <div>
                     <h3 className="text-2xl sm:text-3xl font-extrabold text-white mb-2 flex items-center gap-3">
-                        <img
-                            src={simakLogo}
-                            alt="SIMAK LOGO"
-                            className="h-8 sm:h-10 w-auto object-contain brightness-0 invert"
-                        />
+                        <BrandLogo size={40} className="shrink-0" />
                         {bannerOffer.title}
                     </h3>
                     <p className="text-sm text-zinc-400">{bannerOffer.subtitle}</p>

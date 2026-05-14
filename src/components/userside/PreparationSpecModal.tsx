@@ -23,6 +23,7 @@ const PreparationSpecModal: React.FC<PreparationSpecModalProps> = ({
     const [selectedPreparationId, setSelectedPreparationId] = useState<number | null>(null);
     const [preparationInstructions, setPreparationInstructions] = useState<string>("");
     const [isProcessing, setIsProcessing] = useState(false);
+    const [expandedImage, setExpandedImage] = useState<string | null>(null);
 
     if (!product) return null;
 
@@ -43,6 +44,7 @@ const PreparationSpecModal: React.FC<PreparationSpecModalProps> = ({
     };
 
     return (
+        <>
         <AnimatePresence>
             {isOpen && (
                 <motion.div
@@ -81,40 +83,70 @@ const PreparationSpecModal: React.FC<PreparationSpecModalProps> = ({
                         <div className="overflow-y-auto no-scrollbar pr-1 flex-1 space-y-6">
                             <div className="grid grid-cols-1 gap-3">
                                 {product.preparation_specifications?.map((spec) => (
-                                    <button
+                                    <div
                                         key={spec.id}
-                                        onClick={() => setSelectedPreparationId(spec.id)}
-                                        className={`group flex flex-col items-start p-4 rounded-2xl border-2 transition-all duration-300 ${
+                                        className={`group flex flex-col p-4 rounded-2xl border-2 transition-all duration-300 ${
                                             selectedPreparationId === spec.id
                                                 ? "border-cyan-600 bg-cyan-50/50 shadow-md ring-4 ring-cyan-600/5"
                                                 : "border-slate-100 hover:border-slate-200 bg-slate-50/30"
                                         }`}
                                     >
-                                        <div className="flex justify-between w-full items-center mb-1">
-                                            <div className="flex items-center gap-3">
-                                                <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors ${
-                                                    selectedPreparationId === spec.id ? "border-cyan-600 bg-cyan-600" : "border-slate-300 bg-white"
-                                                }`}>
-                                                    {selectedPreparationId === spec.id && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                                        <div className="flex gap-4 items-center">
+                                            {/* Selection Radio */}
+                                            <button
+                                                onClick={() => setSelectedPreparationId(spec.id)}
+                                                className="shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors"
+                                                style={{ borderColor: selectedPreparationId === spec.id ? '#0891b2' : '#cbd5e1', backgroundColor: selectedPreparationId === spec.id ? '#0891b2' : '#fff' }}
+                                            >
+                                                {selectedPreparationId === spec.id && <div className="w-2 h-2 rounded-full bg-white" />}
+                                            </button>
+
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex justify-between items-start gap-2 mb-1">
+                                                    <button
+                                                        onClick={() => setSelectedPreparationId(spec.id)}
+                                                        className={`text-left font-black text-sm transition-colors ${
+                                                            selectedPreparationId === spec.id ? "text-cyan-950" : "text-slate-900"
+                                                        }`}
+                                                    >
+                                                        {spec.name}
+                                                    </button>
+                                                    {parseFloat(spec.extra_price || "0") > 0 && (
+                                                        <span className="shrink-0 text-[10px] font-black px-2 py-0.5 bg-cyan-100 text-cyan-700 rounded-lg">
+                                                            +AED {parseFloat(spec.extra_price).toFixed(2)}
+                                                        </span>
+                                                    )}
                                                 </div>
-                                                <span className={`font-black text-sm transition-colors ${
-                                                    selectedPreparationId === spec.id ? "text-cyan-950" : "text-slate-900"
-                                                }`}>
-                                                    {spec.name}
-                                                </span>
+                                                
+                                                {spec.description && (
+                                                    <p className="text-[11px] text-slate-500 font-medium leading-relaxed">
+                                                        {spec.description}
+                                                    </p>
+                                                )}
                                             </div>
-                                            {parseFloat(spec.extra_price || "0") > 0 && (
-                                                <span className="text-[11px] font-black px-2 py-0.5 bg-cyan-100 text-cyan-700 rounded-lg">
-                                                    +AED {parseFloat(spec.extra_price).toFixed(2)}
-                                                </span>
+
+                                            {spec.image && (
+                                                <div className="relative group/img w-14 h-14 sm:w-16 sm:h-16 shrink-0 rounded-xl overflow-hidden bg-slate-200/50 border border-slate-100">
+                                                    <img
+                                                        src={typeof spec.image === 'string' ? spec.image : URL.createObjectURL(spec.image as File)}
+                                                        alt={spec.name}
+                                                        className="w-full h-full object-cover transition-transform duration-500 group-hover/img:scale-110"
+                                                    />
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setExpandedImage(typeof spec.image === 'string' ? spec.image : URL.createObjectURL(spec.image as File));
+                                                        }}
+                                                        className="absolute inset-0 bg-black/0 group-hover/img:bg-black/20 flex items-center justify-center transition-all duration-300 opacity-0 group-hover/img:opacity-100"
+                                                    >
+                                                        <span className="bg-white/90 text-slate-900 text-[8px] font-black px-2 py-1 rounded-full shadow-lg backdrop-blur-sm">
+                                                            Expand
+                                                        </span>
+                                                    </button>
+                                                </div>
                                             )}
                                         </div>
-                                        {spec.description && (
-                                            <p className="text-[11px] text-slate-500 font-medium pl-7 text-left leading-relaxed">
-                                                {spec.description}
-                                            </p>
-                                        )}
-                                    </button>
+                                    </div>
                                 ))}
                             </div>
 
@@ -162,6 +194,40 @@ const PreparationSpecModal: React.FC<PreparationSpecModalProps> = ({
                 </motion.div>
             )}
         </AnimatePresence>
+        
+        {/* Expanded Image View */}
+        <AnimatePresence>
+            {expandedImage && (
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/90 backdrop-blur-md"
+                    onClick={() => setExpandedImage(null)}
+                >
+                    <motion.div
+                        initial={{ scale: 0.9, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0.9, opacity: 0 }}
+                        className="relative max-w-4xl w-full"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <button
+                            onClick={() => setExpandedImage(null)}
+                            className="absolute -top-12 right-0 p-2 text-white/70 hover:text-white transition-colors"
+                        >
+                            <X size={32} />
+                        </button>
+                        <img
+                            src={expandedImage}
+                            alt="Expanded view"
+                            className="w-full h-auto max-h-[80vh] object-contain rounded-3xl shadow-2xl border-4 border-white/10"
+                        />
+                    </motion.div>
+                </motion.div>
+            )}
+        </AnimatePresence>
+        </>
     );
 };
 

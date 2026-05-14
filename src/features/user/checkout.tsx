@@ -224,19 +224,20 @@ const CheckoutPage: React.FC = () => {
   const existingPhone: string = user?.phone_number || "";
   const [verifyOpen, setVerifyOpen] = useState(false);
   const [verifyStep, setVerifyStep] = useState<"input" | "otp">("input");
-  const [verifyCountry, setVerifyCountry] = useState("+971");
+  const [verifyCountry] = useState("+971");
   const [verifyPhone, setVerifyPhone] = useState(existingPhone.replace(/[^\d]/g, "").replace(/^(\+971)/, "") || "");
   const [verifyOtp, setVerifyOtp] = useState("");
   const [sendingOtp, setSendingOtp] = useState(false);
   const [verifyingOtp, setVerifyingOtp] = useState(false);
   const [verifyError, setVerifyError] = useState<string | null>(null);
+  const [verifyWhatsApp, setVerifyWhatsApp] = useState(false);
 
   // Add address form
   const [showAddressForm, setShowAddressForm] = useState(false);
 
   const getPhonePrefill = (rawPhone?: string) => {
     const digitsPhone = String(rawPhone || "").replace(/[^\d+]/g, "");
-    const supportedCodes = ["+971", "+91", "+86"];
+    const supportedCodes = ["+971"];
     for (const code of supportedCodes) {
       if (digitsPhone.startsWith(code)) {
         return {
@@ -259,12 +260,10 @@ const CheckoutPage: React.FC = () => {
     latitude: null as number | null, longitude: null as number | null,
   });
   const [addrCountryCode, setAddrCountryCode] = useState(phonePrefill.countryCode);
-  const [addrDropdownOpen, setAddrDropdownOpen] = useState(false);
+  const [, setAddrDropdownOpen] = useState(false);
   const addrDropdownRef = useRef<HTMLDivElement>(null);
   const addressCountries = [
     { code: "+971", flag: "https://flagcdn.com/w40/ae.png", name: "UAE" },
-    { code: "+91", flag: "https://flagcdn.com/w40/in.png", name: "India" },
-    { code: "+86", flag: "https://flagcdn.com/w40/cn.png", name: "China" },
   ];
   const getPhoneRequirements = (code: string) => {
     switch (code) {
@@ -297,6 +296,7 @@ const CheckoutPage: React.FC = () => {
   const [verifyingAddressOtp, setVerifyingAddressOtp] = useState(false);
   const [addressPhoneVerified, setAddressPhoneVerified] = useState(false);
   const [addressPhoneVerificationError, setAddressPhoneVerificationError] = useState<string | null>(null);
+  const [addressPhoneWhatsApp, setAddressPhoneWhatsApp] = useState(false);
 
   const accountPhoneComposed = String(user?.phone_number || "").replace(/\s+/g, "");
   const composedAddressPhone = `${addrCountryCode}${(addressForm.phone_number || "").replace(/[^\d]/g, "").replace(/^0+/, "")}`;
@@ -1066,32 +1066,9 @@ const CheckoutPage: React.FC = () => {
                       <div className="space-y-1">
                         <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{t("fields.phone", "Phone")}</label>
                         <div className="flex gap-2">
-                          <div className="relative" ref={addrDropdownRef}>
-                            <button
-                              type="button"
-                              onClick={() => setAddrDropdownOpen(!addrDropdownOpen)}
-                              className="h-10.5 px-3 rounded-xl border border-slate-200 bg-white flex items-center gap-2 text-sm hover:bg-slate-50"
-                            >
-                              <img src={(addressCountries.find(c => c.code === addrCountryCode) || addressCountries[0]).flag} alt="flag" className="w-5 h-3.5 object-cover rounded-sm" />
-                              <span className="text-xs font-medium text-slate-700">{addrCountryCode}</span>
-                              <ChevronDown size={12} className={`text-slate-400 transition-transform ${addrDropdownOpen ? "rotate-180" : ""}`} />
-                            </button>
-                            {addrDropdownOpen && (
-                              <div className={`absolute top-full ${isArabic ? 'right-0' : 'left-0'} mt-1 w-44 bg-white border border-slate-200 rounded-lg shadow-lg z-50`}>
-                                {addressCountries.map((c) => (
-                                  <button
-                                    key={c.code}
-                                    type="button"
-                                    onClick={() => { setAddrCountryCode(c.code); setAddrDropdownOpen(false); }}
-                                    className={`w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-cyan-50 ${c.code === addrCountryCode ? "bg-cyan-50 text-cyan-600" : "text-slate-700"}`}
-                                  >
-                                    <img src={c.flag} alt={c.name} className="w-5 h-3.5 object-cover rounded-sm" />
-                                    <span className="font-medium">{c.name}</span>
-                                    <span className="ms-auto text-slate-400">{c.code}</span>
-                                  </button>
-                                ))}
-                              </div>
-                            )}
+                          <div className="flex items-center gap-2 px-3 h-10.5 rounded-xl border border-slate-200 bg-white text-sm">
+                            <img src={addressCountries[0].flag} alt="flag" className="w-5 h-3.5 object-cover rounded-sm" />
+                            <span className="font-bold text-slate-700">{addrCountryCode}</span>
                           </div>
                           <input
                             value={addressForm.phone_number}
@@ -1126,35 +1103,52 @@ const CheckoutPage: React.FC = () => {
                         {!isAddressPhoneOtpVerified && (
                           <div className="px-1 pt-1 space-y-2">
                             {addressPhoneOtpStep === "idle" ? (
-                              <button
-                                type="button"
-                                onClick={async () => {
-                                  setAddressPhoneVerificationError(null);
-                                  if (!isAddressPhoneValid) {
-                                    const req = getPhoneRequirements(addrCountryCode);
-                                    setAddressPhoneVerificationError(`${req.name}: ${req.length} digits${req.pattern ? ", specific starting digits required" : ""}`);
-                                    return;
-                                  }
-                                  try {
-                                    setSendingAddressOtp(true);
-                                    await profileApi.sendProfileOtp({
-                                      otp_type: "phone",
-                                      phone_number: composedAddressPhone,
-                                    } as any);
-                                    setAddressPhoneOtpStep("otp");
-                                  } catch (err: any) {
-                                    const apiErr = err?.response?.data;
-                                    const detail = apiErr?.detail || apiErr?.message || (typeof apiErr === "string" ? apiErr : t("verifyPhone.sendError", { defaultValue: "Failed to send OTP. Try again." }));
-                                    setAddressPhoneVerificationError(detail);
-                                  } finally {
-                                    setSendingAddressOtp(false);
-                                  }
-                                }}
-                                disabled={sendingAddressOtp || !isAddressPhoneValid}
-                                className="text-[10px] font-bold text-cyan-600 hover:text-cyan-700 disabled:opacity-50"
-                              >
-                                {sendingAddressOtp ? t("verifyPhone.sending", "Sending...") : t("address.verifyPhone", { defaultValue: "Verify this phone with OTP" })}
-                              </button>
+                              <div className="space-y-2">
+                                <label className="flex items-center gap-2 cursor-pointer select-none group/wa">
+                                  <div className="relative h-4 w-4 rounded-md border border-slate-200 flex items-center justify-center transition-all group-hover/wa:border-green-500">
+                                    <input
+                                      type="checkbox"
+                                      className="peer absolute inset-0 opacity-0 cursor-pointer"
+                                      checked={addressPhoneWhatsApp}
+                                      onChange={(e) => setAddressPhoneWhatsApp(e.target.checked)}
+                                    />
+                                    <Check size={12} strokeWidth={3} className="opacity-0 peer-checked:opacity-100 transition-opacity text-green-600" />
+                                  </div>
+                                  <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 group-hover/wa:text-green-600 transition-colors">
+                                    {t("auth.sendToWhatsApp", "Send OTP via WhatsApp")}
+                                  </span>
+                                </label>
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                    setAddressPhoneVerificationError(null);
+                                    if (!isAddressPhoneValid) {
+                                      const req = getPhoneRequirements(addrCountryCode);
+                                      setAddressPhoneVerificationError(`${req.name}: ${req.length} digits${req.pattern ? ", specific starting digits required" : ""}`);
+                                      return;
+                                    }
+                                    try {
+                                      setSendingAddressOtp(true);
+                                      await profileApi.sendProfileOtp({
+                                        otp_type: "phone",
+                                        phone_number: composedAddressPhone,
+                                        otp_platform: addressPhoneWhatsApp ? "whatsapp" : undefined,
+                                      } as any);
+                                      setAddressPhoneOtpStep("otp");
+                                    } catch (err: any) {
+                                      const apiErr = err?.response?.data;
+                                      const detail = apiErr?.detail || apiErr?.message || (typeof apiErr === "string" ? apiErr : t("verifyPhone.sendError", { defaultValue: "Failed to send OTP. Try again." }));
+                                      setAddressPhoneVerificationError(detail);
+                                    } finally {
+                                      setSendingAddressOtp(false);
+                                    }
+                                  }}
+                                  disabled={sendingAddressOtp || !isAddressPhoneValid}
+                                  className="text-[10px] font-bold text-cyan-600 hover:text-cyan-700 disabled:opacity-50"
+                                >
+                                  {sendingAddressOtp ? t("verifyPhone.sending", "Sending...") : t("address.verifyPhone", { defaultValue: "Verify this phone with OTP" })}
+                                </button>
+                              </div>
                             ) : (
                               <div className="flex gap-2">
                                 <input
@@ -1210,32 +1204,47 @@ const CheckoutPage: React.FC = () => {
                         )}
                       </div>
 
-                      {/* Emirate Dropdown */}
-                      <div className="space-y-1">
+                      {/* Emirate Selection */}
+                      <div className="space-y-1.5 sm:col-span-2">
                         <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{t("fields.emirate", "Emirate")}</label>
-                        <div className="relative">
-                          <select
-                            value={addressForm.emirate}
-                            onChange={(e) => {
-                              setAddressForm((prev) => ({ ...prev, emirate: e.target.value }));
-                              setAddressErrors(prev => {
-                                const next = { ...prev };
-                                if (e.target.value && e.target.value !== "abu_dhabi") {
-                                  next.emirate = emirateUnavailableMessage;
-                                } else {
-                                  delete next.emirate;
-                                }
-                                return next;
-                              });
-                            }}
-                            className={`w-full px-3.5 py-2.5 bg-white border ${addressErrors.emirate ? "border-rose-400 focus:ring-rose-500/30" : "border-slate-200 focus:ring-cyan-500/30"} rounded-xl text-sm appearance-none focus:ring-2 focus:border-cyan-400 outline-none transition-all`}
-                          >
-                            <option value="">{t("address.fields.emirate.placeholder")}</option>
-                            {EMIRATES.map((em) => (
-                              <option key={em.value} value={em.value}>{em.available ? t(em.key) : `${t(em.key)} (${t("address.notAvailable", { defaultValue: "Not available" })})`}</option>
-                            ))}
-                          </select>
-                          <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                          {EMIRATES.map((em) => {
+                            const isSelected = addressForm.emirate === em.value;
+                            const isAvailable = em.available;
+                            return (
+                              <button
+                                key={em.value}
+                                type="button"
+                                onClick={() => {
+                                  if (!isAvailable) return;
+                                  setAddressForm((prev) => ({ ...prev, emirate: em.value }));
+                                  setAddressErrors(prev => {
+                                    const next = { ...prev };
+                                    delete next.emirate;
+                                    return next;
+                                  });
+                                }}
+                                className={`relative px-2 py-2.5 rounded-xl text-xs font-bold text-center transition-all border-2 ${
+                                  isSelected && isAvailable
+                                    ? "border-cyan-500 bg-cyan-50 text-cyan-700 shadow-sm ring-2 ring-cyan-500/10"
+                                    : isAvailable
+                                      ? "border-slate-200 bg-white text-slate-700 hover:border-cyan-300 hover:bg-cyan-50/50 cursor-pointer"
+                                      : "border-slate-100 bg-slate-50 text-slate-300 cursor-not-allowed"
+                                }`}
+                                disabled={!isAvailable}
+                              >
+                                {t(em.key)}
+                                {!isAvailable && (
+                                  <span className="block text-[8px] font-semibold text-slate-400 mt-0.5 leading-tight">{t("address.notAvailable", { defaultValue: "Not available yet" })}</span>
+                                )}
+                                {isSelected && isAvailable && (
+                                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-cyan-500 rounded-full flex items-center justify-center">
+                                    <Check size={10} className="text-white" />
+                                  </span>
+                                )}
+                              </button>
+                            );
+                          })}
                         </div>
                         {addressErrors.emirate && (
                           <p className="text-[10px] text-rose-500 font-medium px-1">{addressErrors.emirate}</p>
@@ -1971,16 +1980,9 @@ const CheckoutPage: React.FC = () => {
               {verifyStep === "input" ? (
                 <div className="space-y-3">
                   <div className="flex gap-2">
-                    <div className="relative">
-                      <select
-                        value={verifyCountry}
-                        onChange={(e) => { setVerifyCountry(e.target.value); }}
-                        className="h-10.5 px-2 rounded-xl border border-slate-200 bg-white text-sm"
-                      >
-                        {addressCountries.map((c) => (
-                          <option key={c.code} value={c.code}>{c.code}</option>
-                        ))}
-                      </select>
+                    <div className="flex items-center gap-2 px-3 h-10.5 rounded-xl border border-slate-200 bg-slate-50 text-sm">
+                      <img src={addressCountries[0].flag} alt="flag" className="w-5 h-3.5 object-cover rounded-sm" />
+                      <span className="font-bold text-slate-700">{verifyCountry}</span>
                     </div>
                     <input
                       value={verifyPhone}
@@ -1991,6 +1993,21 @@ const CheckoutPage: React.FC = () => {
                       inputMode="tel"
                     />
                   </div>
+                  <label className="flex items-center gap-2 cursor-pointer select-none group/wa mb-1">
+                    <div className="relative h-4 w-4 rounded-md border border-slate-200 flex items-center justify-center transition-all group-hover/wa:border-green-500">
+                      <input
+                        type="checkbox"
+                        className="peer absolute inset-0 opacity-0 cursor-pointer"
+                        checked={verifyWhatsApp}
+                        onChange={(e) => setVerifyWhatsApp(e.target.checked)}
+                      />
+                      <Check size={12} strokeWidth={3} className="opacity-0 peer-checked:opacity-100 transition-opacity text-green-600" />
+                    </div>
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 group-hover/wa:text-green-600 transition-colors">
+                      {t("auth.sendToWhatsApp", "Send OTP via WhatsApp")}
+                    </span>
+                  </label>
+
                   <button
                     onClick={async () => {
                       setVerifyError(null);
@@ -2010,6 +2027,7 @@ const CheckoutPage: React.FC = () => {
                         await profileApi.sendProfileOtp({
                           otp_type: "phone",
                           phone_number: composed,
+                          otp_platform: verifyWhatsApp ? "whatsapp" : undefined,
                         } as any);
                         setVerifyStep("otp");
                       } catch (err: any) {

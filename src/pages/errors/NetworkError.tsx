@@ -6,6 +6,17 @@ import { reloadErrorReturnPath } from '../../utils/errorRedirect';
 
 export const NetworkError: React.FC = () => {
     const { t } = useTranslation("common");
+
+    // Auto-retry when connection is restored
+    React.useEffect(() => {
+        const interval = setInterval(() => {
+            if (navigator.onLine) {
+                reloadErrorReturnPath();
+            }
+        }, 5000); // Check every 5 seconds
+        return () => clearInterval(interval);
+    }, []);
+
     return (
         <ErrorPageLayout
             errorCode="503"

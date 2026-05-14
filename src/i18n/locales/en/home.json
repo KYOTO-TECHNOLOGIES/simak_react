@@ -105,8 +105,8 @@
     "steps": [
       {
         "title": "Browse & Pick",
-        "description": "Explore our daily catch — from Pomfret and Prawns to Squid and Surmai. Filter by type or size.",
-        "detail": "Cleaned • Steaks • Fillets • Whole"
+        "description": "Explore our Live catch — Fresh, Frozen and Dry Seafood varieties. Filter by type or size.",
+        "detail": "Live • Cleaned • Steaks • Fillets • Whole"
       },
       {
         "title": "Add to Cart & Pay",
@@ -115,12 +115,12 @@
       },
       {
         "title": "We Pack & Ship",
-        "description": "Your order is hygienically cleaned, vacuum-packed with ice, and dispatched in insulated cold-chain boxes.",
-        "detail": "Ice-packed • Vacuum-sealed • Insulated"
+        "description": "Your order is oxygen packed live or hygienically cleaned, vacuum-packed with ice, and dispatched in insulated cold-chain boxes.",
+        "detail": "Oxygen packed • Ice-packed • Vacuum-sealed • Insulated"
       },
       {
         "title": "Cook & Enjoy!",
-        "description": "Receive fresh seafood at your door — ready to cook. Try our chef-curated recipes for the perfect dish.",
+        "description": "Receive Live or Fresh seafood at your door — ready to cook. Try our chef-curated recipes for the perfect dish.",
         "detail": "Same-day delivery • Recipe cards"
       }
     ]

@@ -1,6 +1,5 @@
 import React from "react";
 import {
-    Phone,
     Mail,
     MapPin,
     Clock,
@@ -11,27 +10,29 @@ import {
     ArrowRight,
     CreditCard,
     Smartphone,
+    MessageCircle,
     ShieldCheck,
 } from "lucide-react";
 
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import simakLogo from "../../../assets/SIMAK FRESH FINAL LOGO-01 (1).png";
+import { BrandLogo } from "../../common/BrandLogo";
+import brandNameSvg from "../../../assets/SIMAK FRESH FINAL SVG-01 riz.svg";
 
 /* ── Component ── */
 const Footer: React.FC = () => {
-    const { t } = useTranslation("common");
+    const { t, i18n } = useTranslation("common");
     const year = new Date().getFullYear();
+    const currentLanguage = i18n.language;
 
     const companyLinks = t("footer.companyLinks", { returnObjects: true }) as { label: string }[];
     const supportLinks = t("footer.supportLinks", { returnObjects: true }) as { label: string }[];
     const legalLinks = t("footer.legalLinks", { returnObjects: true }) as { label: string }[];
     const companyLinkPaths = [
         "/about",       // About Us
-        "/",            // Our Story
         "/",            // Freshness Promise
         "/careers",     // Careers
-        "/",            // Blog
+        "/",           // Blog
         "/",            // Press
     ];
 
@@ -113,16 +114,18 @@ const Footer: React.FC = () => {
                         {/* Brand Column */}
                         <div className="col-span-2 sm:col-span-3 lg:col-span-1">
                             <div className="flex items-center gap-2 mb-4">
-                                <div className="w-9 h-9 bg-yellow-500 rounded-xl flex items-center justify-center shadow-lg overflow-hidden">
-                                    <img
-                                        src={simakLogo}
-                                        alt={t('brand.name')}
-                                        className="h-7 w-7 object-contain"
+                                <BrandLogo size={40} />
+                                {currentLanguage === 'en' ? (
+                                    <img 
+                                        src={brandNameSvg} 
+                                        alt="Simak Fresh" 
+                                        className="h-6 w-auto object-contain brightness-0 invert mt-0"
                                     />
-                                </div>
-                                <span className="text-lg font-extrabold text-white tracking-tight">
-                                    {t('brand.name')}
-                                </span>
+                                ) : (
+                                    <span className="text-[13.5px] font-extrabold text-white tracking-tight">
+                                        {t('brand.name')}
+                                    </span>
+                                )}
                             </div>
                             <p className="text-xs text-cyan-200/60 leading-relaxed mb-2 max-w-xs">
                                 {t("footer.brandDescription")}
@@ -131,10 +134,16 @@ const Footer: React.FC = () => {
                                 {t("brand.motto")}
                             </p>
 
+
                             {/* Contact */}
                             <div className="space-y-2.5 mb-6">
-                                <a href="tel:+971545446111" className="flex items-center gap-2.5 text-xs hover:text-yellow-400 transition-colors">
-                                    <Phone size={13} className="text-cyan-300" />
+                                <a 
+                                    href="https://wa.me/971545446111" 
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-2.5 text-xs hover:text-yellow-400 transition-colors"
+                                >
+                                    <MessageCircle size={13} className="text-emerald-400" />
                                     +971 545 446 111
                                 </a>
                                 <a href="mailto:support@simakfresh.ae" className="flex items-center gap-2.5 text-xs hover:text-yellow-400 transition-colors">
@@ -195,9 +204,9 @@ const Footer: React.FC = () => {
                             </h4>
                             <ul className="space-y-2.5">
                                 {Array.isArray(companyLinks) && companyLinks.map((link, idx) => {
-                                    if (idx === 2) return null;
+                                    if (idx === 1) return null;
 
-                                    const isStaticLabel = idx === 1 || idx === 4 || idx === 5;
+                                    const isStaticLabel = idx === 3 || idx === 4;
 
                                     return (
                                         <li key={idx}>

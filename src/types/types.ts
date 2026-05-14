@@ -8,6 +8,7 @@ export interface SendOtpRequest {
   first_name?: string;
   last_name?: string;
   referral_code?: string;
+  otp_platform?: string;
 }
 
 export interface VerifyOtpRequest {

@@ -18,6 +18,7 @@ import {
   getProductLocationLabel,
 } from "../admin/products/productLocationOptions";
 import { processRestockAlerts } from "../../utils/restockAlerts";
+import PreparationSpecModal from "../../components/userside/PreparationSpecModal";
 
 import logo from "../../assets/SIMAK FRESH FINAL LOGO-01.svg";
 
@@ -95,6 +96,7 @@ const ProductProfile: React.FC = () => {
   const [selectedPreparationId, setSelectedPreparationId] = useState<number | null>(null);
   const [preparationInstructions, setPreparationInstructions] = useState<string>("");
   const [isSpecModalOpen, setIsSpecModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<"cart" | "checkout">("cart");
 
   const mediaList = product ? buildMediaList(product) : [];
 
@@ -218,16 +220,25 @@ const ProductProfile: React.FC = () => {
 
   const requiresPreparation = Boolean(product?.preparation_specifications?.length);
   const isPreparationSelected = !requiresPreparation || selectedPreparationId !== null;
-  const canAddToCart = product?.is_available && product.stock > 0 && isPreparationSelected;
+  const canAddToCart = product?.is_available && product.stock > 0;
 
-  const addItemToCart = (_goTo: "cart" | "checkout") => {
+  const addItemToCart = (mode: "cart" | "checkout", specId?: number, instructions?: string) => {
+    const finalSpecId = specId || selectedPreparationId;
+    const finalInstructions = instructions || preparationInstructions;
+
+    if (requiresPreparation && !finalSpecId) {
+      setModalMode(mode);
+      setIsSpecModalOpen(true);
+      return;
+    }
+
     requireAuth(async () => {
       try {
         const result = await cartsApi.addItem(
           product.id,
           quantity,
-          selectedPreparationId || undefined,
-          preparationInstructions || undefined
+          finalSpecId || undefined,
+          finalInstructions || undefined
         );
         if (result?.error) {
           toast.show(result.error, "error");
@@ -235,7 +246,9 @@ const ProductProfile: React.FC = () => {
         }
         dispatch(fetchCartRequest());
         toast.show(`${product.name} added to cart`, "cart");
-        navigate("/cart");
+        if (mode === "checkout") {
+          navigate("/cart");
+        }
       } catch (e: any) {
         const errorMsg = e?.response?.data?.error || "Failed to add item to cart";
         toast.show(errorMsg, "error");
@@ -266,52 +279,7 @@ const ProductProfile: React.FC = () => {
   // Determine what to show in the main viewer
   const activeMedia = selectedMedia || mediaList[0] || null;
 
-  const renderPreparationSpecs = () => {
-    if (!product?.preparation_specifications || product.preparation_specifications.length === 0) return null;
-    return (
-      <div className="space-y-3 pt-2">
-        <h3 className="text-sm font-bold text-stone-900">Preparation & Cleaning</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          {product.preparation_specifications.map(spec => (
-            <button
-              key={spec.id}
-              onClick={() => setSelectedPreparationId(spec.id)}
-              className={`flex flex-col items-start p-3 rounded-xl border-2 transition-all ${selectedPreparationId === spec.id ? 'border-cyan-600 bg-cyan-50' : 'border-stone-100 hover:border-stone-200 bg-white'}`}
-            >
-              <div className="flex justify-between w-full">
-                <div className="flex items-center gap-2">
-                  {spec.image && (
-                    <div className="w-8 h-8 rounded-md overflow-hidden shrink-0 bg-stone-50 border border-stone-100">
-                      <img src={typeof spec.image === 'string' ? spec.image : ''} alt={spec.name} className="w-full h-full object-cover" />
-                    </div>
-                  )}
-                  <span className="font-bold text-sm text-stone-900 text-left">{spec.name}</span>
-                </div>
-                {parseFloat(spec.extra_price || "0") > 0 && (
-                  <span className="text-xs font-bold text-cyan-600">+AED {parseFloat(spec.extra_price).toFixed(2)}</span>
-                )}
-              </div>
-              {spec.description && (
-                <span className="text-xs text-stone-500 text-left mt-1">{spec.description}</span>
-              )}
-            </button>
-          ))}
-        </div>
-        {selectedPreparationId && (
-          <div className="mt-3">
-            <label className="text-xs font-bold text-stone-700 block mb-1">Special Instructions (Optional)</label>
-            <textarea
-              rows={2}
-              value={preparationInstructions}
-              onChange={(e) => setPreparationInstructions(e.target.value)}
-              placeholder="e.g. Cut into small pieces"
-              className="w-full px-3 py-2 border border-stone-200 rounded-xl text-sm focus:outline-none focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600"
-            />
-          </div>
-        )}
-      </div>
-    );
-  };
+
 
   return (
     <div dir="ltr" className="min-h-screen bg-white text-stone-800">
@@ -484,7 +452,7 @@ const ProductProfile: React.FC = () => {
             </div>
           </div>
 
-          {renderPreparationSpecs()}
+
 
           {/* Actions - Responsive layout for all screen sizes */}
           <div className="flex flex-col sm:flex-row gap-3">
@@ -497,21 +465,13 @@ const ProductProfile: React.FC = () => {
                 <ShoppingCart size={22} />
                 {product.is_available && product.stock > 0 ? t("details.addToCart") : t("details.outOfStock")}
               </button>
-              {product.is_available && product.stock > 0 && requiresPreparation && !isPreparationSelected && (
-                <span className="text-[10px] font-bold text-rose-500 text-center">Please select a preparation option to add to cart</span>
-              )}
+
             </div>
 
             {product.is_available && product.stock > 0 ? (
               <div className="flex-1 flex flex-col gap-1">
                 <button
-                  onClick={() => {
-                    if (requiresPreparation && !isPreparationSelected) {
-                      setIsSpecModalOpen(true);
-                    } else {
-                      addItemToCart("checkout");
-                    }
-                  }}
+                  onClick={() => addItemToCart("checkout")}
                   className="w-full py-4 bg-cyan-600 text-white text-base font-black rounded-2xl hover:bg-cyan-700 shadow-xl shadow-cyan-600/20 hover:shadow-cyan-600/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 active:scale-[0.98]"
                 >
                   <Zap size={22} />
@@ -669,7 +629,7 @@ const ProductProfile: React.FC = () => {
         </button>
         {product.is_available && product.stock > 0 ? (
           <button
-            onClick={() => addItemToCart("cart")}
+            onClick={() => addItemToCart("checkout")}
             className="flex-1 py-3.5 bg-cyan-600 text-white text-sm font-black rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-cyan-600/25 active:scale-[0.97] transition-all"
           >
             <Zap size={17} className="fill-current" />
@@ -791,7 +751,7 @@ const ProductProfile: React.FC = () => {
               <p className="text-stone-500 leading-relaxed text-lg"><BackendData value={product.description} /></p>
             </div>
 
-            {renderPreparationSpecs()}
+
 
             <div className="p-6 bg-stone-50 rounded-3xl border border-stone-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
               <div>
@@ -860,9 +820,7 @@ const ProductProfile: React.FC = () => {
                   <ShoppingCart size={22} />
                   {product.is_available && product.stock > 0 ? t("details.addToCart") : t("details.outOfStock")}
                 </button>
-                {product.is_available && product.stock > 0 && requiresPreparation && !isPreparationSelected && (
-                  <span className="text-[10px] font-bold text-rose-500 text-center">Please select a preparation option to add to cart</span>
-                )}
+
               </div>
 
               {product.is_available && product.stock > 0 ? (
@@ -1040,59 +998,17 @@ const ProductProfile: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* Preparation Spec Modal for Buy Now */}
-      <AnimatePresence>
-        {isSpecModalOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
-          >
-            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsSpecModalOpen(false)} />
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="relative w-full max-w-md bg-white rounded-3xl p-6 shadow-2xl max-h-[90vh] overflow-y-auto no-scrollbar"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-black text-stone-900">Select Preparation</h2>
-                <button
-                  onClick={() => setIsSpecModalOpen(false)}
-                  className="p-2 text-stone-400 hover:text-stone-900 hover:bg-stone-100 rounded-full transition-colors"
-                >
-                  <X size={20} />
-                </button>
-              </div>
-              <p className="text-sm text-stone-500 mb-6">Please select a preparation option before proceeding to checkout.</p>
-
-              {renderPreparationSpecs()}
-
-              <div className="mt-6 pt-4 border-t border-stone-100 flex gap-3">
-                <button
-                  onClick={() => setIsSpecModalOpen(false)}
-                  className="flex-1 py-3 text-sm font-bold text-stone-600 bg-stone-100 hover:bg-stone-200 rounded-xl transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={() => {
-                    if (isPreparationSelected) {
-                      setIsSpecModalOpen(false);
-                      addItemToCart("checkout");
-                    }
-                  }}
-                  disabled={!isPreparationSelected}
-                  className="flex-1 py-3 text-sm font-bold text-white bg-cyan-600 hover:bg-cyan-700 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Confirm & Buy
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <PreparationSpecModal
+        isOpen={isSpecModalOpen}
+        onClose={() => setIsSpecModalOpen(false)}
+        product={product}
+        mode={modalMode}
+        onConfirm={async (specId, instructions) => {
+          setSelectedPreparationId(specId);
+          setPreparationInstructions(instructions);
+          addItemToCart(modalMode, specId, instructions);
+        }}
+      />
     </div>
   );
 };

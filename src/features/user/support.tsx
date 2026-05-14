@@ -1,7 +1,6 @@
 import React, { useState, useCallback } from "react";
 import {
     Mail,
-    Phone,
     Send,
     Loader2,
     CheckCircle2,
@@ -9,6 +8,7 @@ import {
     ChevronDown,
     Headphones,
     Clock,
+    MessageCircle,
     MessageSquare,
     User,
     FileText,
@@ -481,7 +481,7 @@ const SupportPage: React.FC = () => {
                         <div className="bg-white rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-zinc-100 p-8">
                             <div className="flex items-center gap-3 mb-6">
                                 <div className="h-10 w-10 rounded-xl bg-emerald-50 flex items-center justify-center">
-                                    <Phone size={18} className="text-emerald-600" />
+                                    <MessageCircle size={18} className="text-emerald-600" />
                                 </div>
                                 <div>
                                     <h3 className="text-base font-semibold text-zinc-900">
@@ -494,12 +494,14 @@ const SupportPage: React.FC = () => {
                             </div>
 
                             <a
-                                href="tel:+971545446111"
+                                href={t("sidebar.call.tel")}
+                                target="_blank"
+                                rel="noopener noreferrer"
                                 className="block w-full text-center bg-emerald-600 text-white py-4 rounded-2xl text-sm font-bold tracking-wide hover:bg-emerald-700 hover:shadow-xl hover:shadow-emerald-500/20 active:scale-[0.98] transition-all"
                             >
                                 <span className="flex items-center justify-center gap-2">
-                                    <Phone size={16} />
-                                    +971 545 446 111
+                                    <MessageCircle size={16} />
+                                    {t("sidebar.call.value")}
                                 </span>
                             </a>
 

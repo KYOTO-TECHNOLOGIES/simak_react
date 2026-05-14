@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ChevronLeft, Shield, ShieldAlert, UserCheck, Ban, Undo2, MapPin, User, Globe } from "lucide-react";
+import { ChevronLeft, Shield, ShieldAlert, UserCheck, Ban, Undo2, MapPin, User, Globe, Loader2 } from "lucide-react";
 import { useDispatch } from "react-redux";
+import { NATIONALITY_CHOICES } from "../../../constants/nationalities";
 import { customersApi, type Customer, type UserDto } from "./customersApi";
 import { customersActions } from "./customersSlice";
 import { normalizeMediaUrl } from "../../../utils/media";
@@ -32,6 +33,7 @@ function mapUserDtoToCustomer(dto: UserDto): Customer {
     profilePicture: normalizeMediaUrl(dto.profile?.profile_picture),
     dateOfBirth: dto.profile?.date_of_birth ?? null,
     gender: dto.profile?.gender ?? null,
+    nationality: dto.nationality ?? null,
     preferredLanguage: dto.profile?.preferred_language ?? "en",
     newsletterSubscribed: dto.profile?.newsletter_subscribed ?? false,
     notificationEnabled: dto.profile?.notification_enabled ?? false,
@@ -40,6 +42,7 @@ function mapUserDtoToCustomer(dto: UserDto): Customer {
     updatedAt: dto.updated_at,
     deletedAt: dto.deleted_at,
     addresses: dto.addresses ?? [],
+
   };
 }
 
@@ -151,6 +154,7 @@ const CustomerDetailsPage: React.FC = () => {
                 <InfoField label="Last Login" value={customer.lastLoginAt ? new Date(customer.lastLoginAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "Never"} />
                 <InfoField label="DOB" value={customer.dateOfBirth ? new Date(customer.dateOfBirth).toLocaleDateString() : "—"} />
                 <InfoField label="Gender" value={customer.gender || "—"} />
+                <InfoField label="Nationality" value={NATIONALITY_CHOICES.find(n => n.code === customer.nationality)?.label || customer.nationality || "—"} />
                 <InfoField label="Language">
                   <span className="text-xs font-bold flex items-center gap-2"><Globe size={12} /> {customer.preferredLanguage?.toUpperCase() || "—"}</span>
                 </InfoField>
@@ -197,23 +201,25 @@ const CustomerDetailsPage: React.FC = () => {
             <div className="space-y-6">
               <div className="bg-white border border-[#EEEEEE] rounded-2xl p-6 space-y-3">
                 <h3 className="text-[10px] font-bold uppercase tracking-widest text-[#A1A1AA]">Actions</h3>
-                {customer.status === "Active" ? (
-                  <button
-                    disabled={actionBusy}
-                    onClick={() => doAction("block")}
-                    className="w-full py-2.5 bg-rose-600 text-white text-xs font-bold rounded-lg hover:bg-rose-700 disabled:opacity-40"
-                  >
-                    <Ban size={14} className="inline mr-1" /> Block User
-                  </button>
-                ) : (
-                  <button
-                    disabled={actionBusy}
-                    onClick={() => doAction("unblock")}
-                    className="w-full py-2.5 bg-emerald-600 text-white text-xs font-bold rounded-lg hover:bg-emerald-700 disabled:opacity-40"
-                  >
-                    <UserCheck size={14} className="inline mr-1" /> Unblock User
-                  </button>
-                )}
+                 {customer.status === "Active" ? (
+                   <button
+                     disabled={actionBusy}
+                     onClick={() => doAction("block")}
+                     className="w-full py-2.5 bg-rose-600 text-white text-xs font-bold rounded-lg hover:bg-rose-700 disabled:opacity-40 flex items-center justify-center gap-2"
+                   >
+                     {actionBusy ? <Loader2 size={14} className="animate-spin" /> : <Ban size={14} />}
+                     Block User
+                   </button>
+                 ) : (
+                   <button
+                     disabled={actionBusy}
+                     onClick={() => doAction("unblock")}
+                     className="w-full py-2.5 bg-emerald-600 text-white text-xs font-bold rounded-lg hover:bg-emerald-700 disabled:opacity-40 flex items-center justify-center gap-2"
+                   >
+                     {actionBusy ? <Loader2 size={14} className="animate-spin" /> : <UserCheck size={14} />}
+                     Unblock User
+                   </button>
+                 )}
                 <div className="relative">
                   <button
                     disabled={actionBusy}
@@ -237,15 +243,16 @@ const CustomerDetailsPage: React.FC = () => {
                     </div>
                   )}
                 </div>
-                {customer.isDeleted ? (
-                  <button
-                    disabled={actionBusy}
-                    onClick={() => doAction("restore")}
-                    className="w-full py-2.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-bold hover:bg-emerald-100"
-                  >
-                    <Undo2 size={14} className="inline mr-1" /> Restore User
-                  </button>
-                ) : null}
+                 {customer.isDeleted ? (
+                   <button
+                     disabled={actionBusy}
+                     onClick={() => doAction("restore")}
+                     className="w-full py-2.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-bold hover:bg-emerald-100 disabled:opacity-40 flex items-center justify-center gap-2"
+                   >
+                     {actionBusy ? <Loader2 size={14} className="animate-spin" /> : <Undo2 size={14} />}
+                     Restore User
+                   </button>
+                 ) : null}
               </div>
             </div>
           </div>
