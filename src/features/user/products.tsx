@@ -40,7 +40,11 @@ const ProductCard = memo(({
     onBuyNow: (e: React.MouseEvent, p: ProductDto) => void;
     onNotifyMe: (e: React.MouseEvent, p: ProductDto) => void;
 }) => {
-    const { t } = useTranslation("product");
+    const { t, i18n } = useTranslation("product");
+    const { data: categories = [] } = useCategories(i18n.language);
+    const matchedCategory = categories.find((c) => c.id === product.category || c.name === product.category_name);
+    const displayCategoryName = matchedCategory?.localizedName || product.category_name || t("card.categoryFallback");
+
     const unitDisplay =
         product.unit === "kg" ? "Kg"
             : product.unit === "piece" ? "Pc"
@@ -122,7 +126,7 @@ const ProductCard = memo(({
                 <div className="px-2 pb-2 grow flex flex-col text-left" dir="ltr">
                     <div className="mb-1 flex items-center justify-between">
                         <span className="text-[10px] font-extrabold uppercase tracking-widest text-cyan-600 bg-cyan-50 px-2 py-0.5 rounded-md">
-                            {product.category_name || t("card.categoryFallback")}
+                            {displayCategoryName}
                         </span>
                         <div className="flex items-center gap-0.5 shrink-0">
                             <Star size={10} className="text-amber-400 fill-amber-400" />
@@ -425,7 +429,7 @@ const UserProductsPage: React.FC = () => {
                                                 : "bg-slate-50 text-slate-500 hover:bg-slate-100 border border-slate-200/50"
                                         }`}
                                     >
-                                        {cat.name}
+                                        {cat.localizedName || cat.name}
                                     </button>
                                 );
                             })}

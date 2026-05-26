@@ -51,6 +51,24 @@ export interface PreparationSpecificationDto {
   updated_at?: string;
 }
 
+/* ── Notifying Users DTO ── */
+export interface NotifyingUserDto {
+  id: number;
+  user_id: number;
+  user_name: string;
+  user_email: string;
+  user_phone: string;
+  created_at: string;
+  notified: boolean;
+}
+
+export interface NotifyingUsersResponse {
+  product_id: number;
+  product_name: string;
+  pending_notifications_count: number;
+  notifying_users: NotifyingUserDto[];
+}
+
 /* ── Product DTO returned by backend ── */
 export interface ProductDto {
   id: number;
@@ -102,6 +120,9 @@ export type ProductsQuery = {
 export interface CategoryDto {
   id: number;
   name: string;
+  name_arabic?: string;
+  name_chinese?: string;
+  localizedName?: string;
   slug: string;
   description: string;
   parent?: number | null;
@@ -138,6 +159,11 @@ export const productsApi = {
 
   notifyStock: async (id: number): Promise<void> => {
     await api.post(`/products/products/${id}/notify_stock/`);
+  },
+
+  notifyingUsers: async (id: number): Promise<NotifyingUsersResponse> => {
+    const res = await api.get<NotifyingUsersResponse>(`/products/products/${id}/notifying-users/`);
+    return res.data;
   },
 
   create: async (payload: Partial<ProductDto> | FormData): Promise<ProductDto> => {

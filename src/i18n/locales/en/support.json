@@ -88,10 +88,10 @@
     "title": "Common Questions",
     "items": [
       { "q": "How do I track my order?", "a": "After shipping, you'll receive a tracking link via email and SMS. You can also view it on your Orders page." },
-      { "q": "What is your return & refund policy?", "a": "Returns accepted within 7 days if unused and in original packaging. Refunds process in 3-5 business days." },
-      { "q": "How long does delivery take?", "a": "Standard delivery in the UAE takes 2-4 business days. Express options may be available in select areas." },
-      { "q": "Can I change or cancel my order?", "a": "You can modify or cancel within 1 hour of placing the order. After that, it enters processing." },
-      { "q": "What payment methods do you accept?", "a": "Visa, Mastercard, Apple Pay, Cash on Delivery, and bank transfers." }
+      { "q": "What is your return & refund policy?", "a": "Due to the nature of our products, we have a no-return policy. Refunds or replacements are only issued for incorrect or damaged items. Please submit complaints with photo or video proof within 2–3 hours of delivery. Approved refunds are processed within 5–7 business days." },
+      { "q": "How long does delivery take?", "a": "Standard delivery in the UAE, subjected to availability to each emirates as displayed clearly at checkout." },
+      { "q": "Can I change or cancel my order?", "a": "You cannot cancel or modify the order once it is confirmed" },
+      { "q": "What payment methods do you accept?", "a": "Visa, Mastercard, Apple Pay, Samsung Pay, Cash on Delivery, and bank transfers." }
     ]
   }
 }

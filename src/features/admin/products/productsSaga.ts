@@ -87,6 +87,9 @@ function mapCategoryDtoToCategory(dto: CategoryDto): Category {
     return {
         id: dto.id,
         name: dto.name,
+        name_arabic: dto.name_arabic,
+        name_chinese: dto.name_chinese,
+        localizedName: dto.localizedName,
         slug: dto.slug,
         description: dto.description,
         parent: dto.parent,

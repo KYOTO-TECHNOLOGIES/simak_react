@@ -27,18 +27,18 @@ const ShopByCategorySection: React.FC = () => {
           </h2>
         </div>
 
-        {/* Grid */}
+        {/* Horizontal Scroll Carousel */}
         {isLoading ? (
-          <div className="flex gap-3 overflow-x-auto pb-1 sm:grid sm:grid-cols-4 lg:grid-cols-5 sm:gap-4 scrollbar-hide">
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="animate-pulse shrink-0 w-36 sm:w-auto">
+          <div className="flex gap-[6px] sm:gap-[10px] overflow-x-auto pb-3 scrollbar-hide w-full">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="animate-pulse shrink-0 w-[72px] sm:w-[104px] md:w-[120px]">
                 <div className="aspect-square bg-zinc-200 rounded-[22%]" />
                 <div className="mt-2 h-3 bg-zinc-200 rounded-full w-2/3 mx-auto" />
               </div>
             ))}
           </div>
         ) : categories.length > 0 ? (
-          <div className="flex gap-3 overflow-x-auto pb-1 sm:grid sm:grid-cols-4 lg:grid-cols-5 sm:gap-4 scrollbar-hide">
+          <div className="flex gap-[6px] sm:gap-[10px] overflow-x-auto pb-3 scrollbar-hide w-full">
             {categories.map((cat, i) => (
               <CategoryCard key={cat.id} category={cat} index={i} />
             ))}
@@ -73,7 +73,7 @@ const CategoryCard: React.FC<{ category: CategoryDto; index: number }> = ({
   return (
     <div
       ref={ref}
-      className={`shrink-0 w-20 sm:w-auto transition-all duration-500 ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
+      className={`shrink-0 w-[72px] sm:w-[104px] md:w-[120px] transition-all duration-500 ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
         }`}
       style={{ transitionDelay: `${index * 80}ms` }}
     >
@@ -85,7 +85,7 @@ const CategoryCard: React.FC<{ category: CategoryDto; index: number }> = ({
           {category.image ? (
             <img
               src={category.image}
-              alt={category.name}
+              alt={category.localizedName || category.name}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
               loading="lazy"
             />
@@ -95,8 +95,8 @@ const CategoryCard: React.FC<{ category: CategoryDto; index: number }> = ({
             </div>
           )}
         </div>
-        <h3 className="mt-1.5 text-[11px] sm:text-sm font-bold text-zinc-900 group-hover:text-cyan-600 transition-colors">
-          {category.name}
+        <h3 className="mt-1.5 text-[11px] sm:text-xs md:text-sm font-bold text-zinc-900 group-hover:text-cyan-600 transition-colors truncate px-1">
+          {category.localizedName || category.name}
         </h3>
       </Link>
     </div>

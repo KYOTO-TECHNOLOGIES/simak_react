@@ -6,7 +6,7 @@ import {
     User, Mail, Phone, LogOut, Camera, Save, Loader2, Calendar,
     MapPin, Package, Plus, Edit3, X, Home, Briefcase, Globe, Star,
     ChevronRight, CheckCircle, Hash, Clock, Truck, XCircle, AlertCircle,
-    ChevronDown, Gift, Copy, Share2, Percent, Tag, Check
+    ChevronDown, Gift, Copy, Share2, Percent, Tag, Check, Search
 } from "lucide-react";
 import referralInviteImg from "../../assets/referral/referral_invite.png";
 import referralPurchaseImg from "../../assets/referral/referral_purchase.png";
@@ -435,6 +435,27 @@ const PersonalInfoTab: React.FC<PersonalInfoTabProps> = ({ profileData, loading,
     const [nationality, setNationality] = useState("");
     const [preferredLanguage, setPreferredLanguage] = useState("");
     const [saving, setSaving] = useState(false);
+
+    // Searchable Nationality Dropdown State & Ref
+    const [natSearch, setNatSearch] = useState("");
+    const [natDropdownOpen, setNatDropdownOpen] = useState(false);
+    const nationalityRef = useRef<HTMLDivElement>(null);
+
+    const filteredNationalities = NATIONALITY_CHOICES.filter((n) =>
+        n.label.toLowerCase().includes(natSearch.toLowerCase())
+    );
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (nationalityRef.current && !nationalityRef.current.contains(event.target as Node)) {
+                setNatDropdownOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, []);
 
     const toast = useToast();
     const queryClient = useQueryClient();
@@ -945,6 +966,82 @@ const PersonalInfoTab: React.FC<PersonalInfoTabProps> = ({ profileData, loading,
                     </div>
                 </div>
 
+                {/* Nationality — custom searchable dropdown */}
+                <div className="space-y-2 relative animate-fade-in" ref={nationalityRef}>
+                    <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 ms-1">{t("profile.personalInfo.nationality", "Nationality")}</label>
+                    {editing ? (
+                        <div className="relative">
+                            <button
+                                type="button"
+                                onClick={() => setNatDropdownOpen(!natDropdownOpen)}
+                                className="w-full ps-11 pe-10 py-3 bg-slate-50 border border-slate-100 rounded-xl text-xs sm:text-sm font-medium text-slate-700 focus:bg-white focus:border-slate-300 outline-none flex items-center justify-between text-left transition-all duration-300 active:scale-[0.99] border-2 border-transparent focus:border-cyan-500"
+                            >
+                                <Globe size={16} className="absolute start-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                                <span className="truncate">
+                                    {NATIONALITY_CHOICES.find(n => n.code === nationality)?.label || t("profile.personalInfo.selectNationality", "Select Nationality")}
+                                </span>
+                                <ChevronDown size={14} className="absolute end-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none transition-transform duration-300" style={{ transform: natDropdownOpen ? 'rotate(180deg)' : 'none' }} />
+                            </button>
+
+                            {natDropdownOpen && (
+                                <div className="absolute z-50 mt-1.5 w-full bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden max-h-64 flex flex-col transition-all duration-200 animate-slide-down">
+                                    <div className="p-2 border-b border-slate-100 sticky top-0 bg-white z-10">
+                                        <div className="relative">
+                                            <Search size={14} className="absolute start-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                                            <input
+                                                type="text"
+                                                placeholder={t("profile.personalInfo.searchNationality", "Search nationality...")}
+                                                value={natSearch}
+                                                onChange={(e) => setNatSearch(e.target.value)}
+                                                className="w-full ps-9 pe-8 py-2 bg-slate-50 border border-slate-100 rounded-lg text-xs outline-none focus:bg-white focus:border-slate-300 transition-colors"
+                                                autoFocus
+                                            />
+                                            {natSearch && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setNatSearch("")}
+                                                    className="absolute end-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400 hover:text-slate-600 uppercase tracking-tighter"
+                                                >
+                                                    {t("common.clear", "Clear")}
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="overflow-y-auto flex-1 max-h-48 scrollbar-thin">
+                                        {filteredNationalities.length === 0 ? (
+                                            <div className="p-3 text-xs text-slate-400 text-center">
+                                                {t("profile.personalInfo.noResults", "No results found")}
+                                            </div>
+                                        ) : (
+                                            filteredNationalities.map((n) => (
+                                                <button
+                                                    key={n.code}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setNationality(n.code);
+                                                        setNatDropdownOpen(false);
+                                                        setNatSearch("");
+                                                    }}
+                                                    className={`w-full text-left px-4 py-2.5 text-xs sm:text-sm transition-all duration-200 hover:bg-cyan-50/30 ${
+                                                        nationality === n.code ? "bg-cyan-50 text-cyan-600 font-bold" : "text-slate-700"
+                                                    }`}
+                                                >
+                                                    {n.label}
+                                                </button>
+                                            ))
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        <div className="px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-xs sm:text-sm font-medium text-slate-700 flex items-center gap-2">
+                            <Globe size={14} className="text-slate-400 shrink-0" />
+                            {NATIONALITY_CHOICES.find(n => n.code === nationality)?.label || nationality || "—"}
+                        </div>
+                    )}
+                </div>
+
                 {/* Gender */}
                 <div className="space-y-2">
                     <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 ms-1">{t("profile.personalInfo.gender")}</label>
@@ -990,32 +1087,6 @@ const PersonalInfoTab: React.FC<PersonalInfoTabProps> = ({ profileData, loading,
                         <div className="px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-xs sm:text-sm font-medium text-slate-700 flex items-center gap-2">
                             <Calendar size={14} className="text-slate-400 shrink-0" />
                             {dob ? new Date(dob + "T00:00:00").toLocaleDateString("en-AE", { year: "numeric", month: "long", day: "numeric" }) : "—"}
-                        </div>
-                    )}
-                </div>
-
-                {/* Nationality */}
-                <div className="space-y-2">
-                    <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 ms-1">{t("profile.personalInfo.nationality", "Nationality")}</label>
-                    {editing ? (
-                        <div className="relative">
-                            <Globe size={16} className="absolute start-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-                            <select
-                                value={nationality}
-                                onChange={(e) => setNationality(e.target.value)}
-                                className="w-full ps-11 pe-3 py-3 bg-slate-50 border border-slate-100 rounded-xl text-xs sm:text-sm font-medium text-slate-700 focus:bg-white focus:border-slate-300 outline-none appearance-none"
-                            >
-                                <option value="">{t("profile.personalInfo.selectNationality", "Select Nationality")}</option>
-                                {NATIONALITY_CHOICES.map((n) => (
-                                    <option key={n.code} value={n.code}>{n.label}</option>
-                                ))}
-                            </select>
-                            <ChevronDown size={14} className="absolute end-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-                        </div>
-                    ) : (
-                        <div className="px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-xs sm:text-sm font-medium text-slate-700 flex items-center gap-2">
-                            <Globe size={14} className="text-slate-400 shrink-0" />
-                            {NATIONALITY_CHOICES.find(n => n.code === nationality)?.label || nationality || "—"}
                         </div>
                     )}
                 </div>

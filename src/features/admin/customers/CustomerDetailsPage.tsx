@@ -66,6 +66,7 @@ const CustomerDetailsPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [roleOpen, setRoleOpen] = useState(false);
   const [actionBusy, setActionBusy] = useState(false);
+  const [imgError, setImgError] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -118,8 +119,13 @@ const CustomerDetailsPage: React.FC = () => {
             </button>
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center border border-[#EEEEEE] overflow-hidden">
-                {customer?.profilePicture ? (
-                  <img src={customer.profilePicture} alt={customer?.name} className="w-full h-full object-cover" />
+                {customer?.profilePicture && !imgError ? (
+                  <img
+                    src={customer.profilePicture}
+                    alt={customer?.name}
+                    className="w-full h-full object-cover"
+                    onError={() => setImgError(true)}
+                  />
                 ) : (
                   <User size={18} className="text-[#A1A1AA]" />
                 )}

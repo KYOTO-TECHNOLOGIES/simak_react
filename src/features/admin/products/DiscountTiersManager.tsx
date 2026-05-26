@@ -41,7 +41,7 @@ const DiscountTiersManager: React.FC<DiscountTiersManagerProps> = ({
       setTiers(tiersData);
       // Notify parent of tier changes
       onTiersChange?.(tiersData);
-      console.log("Discount tiers fetched:", tiersData);
+      // console.log("Discount tiers fetched:", tiersData);
     } catch (err) {
       setError("Failed to load discount tiers");
       console.error(err);

@@ -1,7 +1,7 @@
-import React, { useEffect, useMemo, useState, useCallback } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import { ChevronLeft, Package, Tag, Clock, Star, Edit3, Truck, Image as ImageIcon, Video, Play } from "lucide-react";
-import { productsApi, type ProductDto } from "./productApi";
+          import React, { useEffect, useMemo, useState, useCallback } from "react";
+import { useNavigate, useParams, Link } from "react-router-dom";
+import { ChevronLeft, Package, Tag, Clock, Star, Edit3, Truck, Image as ImageIcon, Video, Play, Users, Mail, Phone, Bell } from "lucide-react";
+import { productsApi, type ProductDto, type NotifyingUsersResponse } from "./productApi";
 import MediaLightbox, { type MediaItem } from "./MediaLightbox";
 
 function getBestImage(dto: ProductDto): string | null {
@@ -55,6 +55,7 @@ const ProductDetailsPage: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [product, setProduct] = useState<ReturnType<typeof mapDto> | null>(null);
+  const [notifyingUsers, setNotifyingUsers] = useState<NotifyingUsersResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lightbox, setLightbox] = useState<{ items: MediaItem[]; index: number } | null>(null);
@@ -64,8 +65,12 @@ const ProductDetailsPage: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      const dto = await productsApi.details(Number(id));
+      const [dto, notifyingUsersData] = await Promise.all([
+        productsApi.details(Number(id)),
+        productsApi.notifyingUsers(Number(id)).catch(() => null)
+      ]);
       setProduct(mapDto(dto));
+      setNotifyingUsers(notifyingUsersData);
     } catch (e: any) {
       setError(e?.message || "Failed to load product");
     } finally {
@@ -301,7 +306,148 @@ const ProductDetailsPage: React.FC = () => {
                   <p>Updated: {new Date(product.updatedAt).toLocaleString()}</p>
                 </div>
               </div>
+
+              {/* Wanted Users Card */}
+              {notifyingUsers && (
+                <div className="bg-white border border-[#EEEEEE] rounded-2xl p-6 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-[#A1A1AA] flex items-center gap-2">
+                      <Bell size={12} /> Wanted Users
+                    </p>
+                    {notifyingUsers.pending_notifications_count > 0 && (
+                      <span className="relative flex h-2.5 w-2.5">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500" />
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center">
+                      <Users size={20} className="text-amber-600" />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-black">{notifyingUsers.notifying_users.length}</p>
+                      <p className="text-[10px] font-bold text-[#A1A1AA] uppercase tracking-widest">
+                        {notifyingUsers.notifying_users.length === 1 ? "User" : "Users"} clicked Notify Me
+                      </p>
+                    </div>
+                  </div>
+
+                  {notifyingUsers.notifying_users.length > 0 && (
+                    <>
+                      <div className="flex gap-3">
+                        <div className="flex-1 bg-amber-50 border border-amber-100 rounded-xl p-3 text-center">
+                          <p className="text-lg font-black text-amber-600">{notifyingUsers.pending_notifications_count}</p>
+                          <p className="text-[9px] font-bold text-amber-500 uppercase tracking-widest">Pending</p>
+                        </div>
+                        <div className="flex-1 bg-emerald-50 border border-emerald-100 rounded-xl p-3 text-center">
+                          <p className="text-lg font-black text-emerald-600">
+                            {notifyingUsers.notifying_users.length - notifyingUsers.pending_notifications_count}
+                          </p>
+                          <p className="text-[9px] font-bold text-emerald-500 uppercase tracking-widest">Notified</p>
+                        </div>
+                      </div>
+
+                      {/* Progress bar */}
+                      <div>
+                        <div className="flex justify-between text-[9px] font-bold text-[#A1A1AA] uppercase tracking-widest mb-1">
+                          <span>Notification progress</span>
+                          <span>
+                            {Math.round(
+                              ((notifyingUsers.notifying_users.length - notifyingUsers.pending_notifications_count) /
+                                notifyingUsers.notifying_users.length) *
+                                100
+                            )}%
+                          </span>
+                        </div>
+                        <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+                            style={{
+                              width: `${
+                                ((notifyingUsers.notifying_users.length - notifyingUsers.pending_notifications_count) /
+                                  notifyingUsers.notifying_users.length) *
+                                100
+                              }%`,
+                            }}
+                          />
+                        </div>
+                      </div>
+
+                      <a
+                        href="#notifying-users-table"
+                        className="flex items-center justify-center gap-2 w-full py-2 text-xs font-bold text-slate-600 bg-slate-50 border border-slate-100 rounded-xl hover:bg-slate-100 transition-colors"
+                      >
+                        <Users size={12} /> View all users ↓
+                      </a>
+                    </>
+                  )}
+
+                  {notifyingUsers.notifying_users.length === 0 && (
+                    <p className="text-xs text-[#A1A1AA] text-center py-2">No users have requested notifications yet.</p>
+                  )}
+                </div>
+              )}
             </div>
+            
+            {/* Notifying Users Section */}
+            {notifyingUsers && notifyingUsers.notifying_users.length > 0 && (
+              <div id="notifying-users-table" className="bg-white border border-[#EEEEEE] rounded-2xl p-6 lg:col-span-3">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-sm font-bold flex items-center gap-2">
+                    <Users size={16} /> 
+                    Users Waiting for Restock
+                  </h3>
+                  <span className="text-[10px] font-bold bg-amber-100 text-amber-700 px-2.5 py-1 rounded-full uppercase border border-amber-200">
+                    {notifyingUsers.pending_notifications_count} Pending
+                  </span>
+                </div>
+                
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="border-b border-[#EEEEEE] text-[10px] uppercase text-[#A1A1AA] tracking-widest">
+                        <th className="pb-3 font-bold">User</th>
+                        <th className="pb-3 font-bold">Contact</th>
+                        <th className="pb-3 font-bold">Requested At</th>
+                        <th className="pb-3 font-bold">Status</th>
+                        <th className="pb-3 font-bold text-right">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="text-sm">
+                      {notifyingUsers.notifying_users.map(nu => (
+                        <tr key={nu.id} className="border-b border-[#EEEEEE] last:border-0 hover:bg-slate-50 transition-colors">
+                          <td className="py-3 font-bold">{nu.user_name}</td>
+                          <td className="py-3">
+                            <div className="flex flex-col gap-1">
+                              <span className="flex items-center gap-1.5 text-xs font-medium text-slate-600"><Mail size={12} className="text-slate-400" /> {nu.user_email}</span>
+                              {nu.user_phone && <span className="flex items-center gap-1.5 text-xs font-medium text-slate-600"><Phone size={12} className="text-slate-400" /> {nu.user_phone}</span>}
+                            </div>
+                          </td>
+                          <td className="py-3 text-xs font-medium text-slate-500">{new Date(nu.created_at).toLocaleDateString()}</td>
+                          <td className="py-3">
+                            {nu.notified ? (
+                              <span className="text-[10px] font-bold bg-emerald-50 text-emerald-600 px-2 py-1 rounded-full border border-emerald-100 uppercase tracking-wide">Notified</span>
+                            ) : (
+                              <span className="text-[10px] font-bold bg-slate-50 text-slate-600 px-2 py-1 rounded-full border border-slate-200 uppercase tracking-wide">Pending</span>
+                            )}
+                          </td>
+                          <td className="py-3 text-right">
+                            <Link 
+                              to={`/admin/users/${nu.user_id}`}
+                              className="inline-flex items-center gap-1 px-3 py-1.5 bg-black text-white text-[10px] font-bold uppercase tracking-wide rounded hover:bg-zinc-800 transition-colors"
+                            >
+                              View User
+                            </Link>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

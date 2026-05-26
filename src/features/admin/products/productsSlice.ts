@@ -36,6 +36,9 @@ export interface Product {
 export interface Category {
     id: number;
     name: string;
+    name_arabic?: string;
+    name_chinese?: string;
+    localizedName?: string;
     slug: string;
     description: string;
     parent?: number | null;

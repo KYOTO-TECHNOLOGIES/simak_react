@@ -110,9 +110,11 @@ const Footer: React.FC = () => {
             {/* Main Footer Grid */}
             <div className="px-4 sm:px-6 lg:px-8 pb-6">
                 <div className="mx-auto  ">
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-8">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-8">
                         {/* Brand Column */}
-                        <div className="col-span-2 sm:col-span-3 lg:col-span-1">
+                        <div className="col-span-2 sm:col-span-4 lg:col-span-2 flex flex-col sm:flex-row lg:flex-col gap-8 sm:gap-16 lg:gap-0">
+                            {/* Logo & Description */}
+                            <div className="flex-1">
                             <div className="flex items-center gap-2 mb-4">
                                 <BrandLogo size={40} />
                                 {currentLanguage === 'en' ? (
@@ -133,10 +135,12 @@ const Footer: React.FC = () => {
                             <p className="text-[10px] font-bold text-yellow-500 uppercase tracking-[0.1em] mb-5">
                                 {t("brand.motto")}
                             </p>
+                            </div>
 
-
-                            {/* Contact */}
-                            <div className="space-y-2.5 mb-6">
+                            {/* Contact & Socials */}
+                            <div className="flex-1">
+                                {/* Contact */}
+                                <div className="space-y-2.5 mb-6">
                                 <a 
                                     href="https://wa.me/971545446111" 
                                     target="_blank"
@@ -175,6 +179,7 @@ const Footer: React.FC = () => {
                                         {s.icon}
                                     </a>
                                 ))}
+                            </div>
                             </div>
                         </div>
 

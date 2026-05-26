@@ -247,7 +247,19 @@ export const useCategories = (lng: string = "en") => {
                 headers: { "Accept-Language": apiLanguage },
             });
             const data = res.data;
-            return Array.isArray(data) ? data : (data?.results ?? []);
+            const items = Array.isArray(data) ? data : (data?.results ?? []);
+            return items.map((cat) => {
+                let localizedName = cat.name;
+                if (language === "ar" && cat.name_arabic) {
+                    localizedName = cat.name_arabic;
+                } else if (language === "cn" && cat.name_chinese) {
+                    localizedName = cat.name_chinese;
+                }
+                return {
+                    ...cat,
+                    localizedName,
+                };
+            });
         },
         staleTime: 10 * 60 * 1000, // Categories change slowly
     });
