@@ -150,14 +150,17 @@
       }
     ],
     "categoryLabels": {
-      "freshFish": "أسماك طازجة",
-      "frozenFish": "أسماك مجمدة",
-      "liveFish": "أسماك حية",
-      "lightFish": "أسماك خفيفة"
+      "liveFish": "حي",
+      "organicFish": "عضوي",
+      "freshFish": "طازج",
+      "frozenFish": "مجمد",
+      "dryFish": "مجفف"
     },
     "download": "تحميل التطبيق",
     "getItOn": "متوفر على",
     "downloadOn": "حمل من",
+    "googlePlayAlt": "احصل عليه من Google Play",
+    "appStoreAlt": "حمّل من App Store",
     "weAccept": "نحن نقبل",
     "paymentMethods": {
       "cards": "بطاقات",
@@ -173,6 +176,12 @@
     "ourMissionText": "نقدم أطازج المأكولات البحرية مع شفافية تامة وخدمة استثنائية والتزام بالاستدامة. كل منتج يتم اختياره بعناية والاعتناء به مهنياً وتسليمه بالجودة التي يتوقعها عملاؤنا.",
     "ourMissionText2": "سيمك فريش مبني على الثقة والموثوقية والاعتقاد بأن المأكولات البحرية الممتازة يجب أن تكون متاحة للعائلات والمطاعم والموزعين عبر المنطقة وخارجها.",
     "whyChooseUsTitle": "لماذا تختار سيمك فريش",
+    "promise": {
+      "uaeExpertise": "خبرة الإمارات",
+      "globalNetwork": "شبكة عالمية",
+      "freshnessGuaranteed": "ضمان الطزاجة",
+      "premiumSourcing": "توريد مميز"
+    },
     "expertsInSeafood": "خبرة في المأكولات البحرية عبر كل القطاعات",
     "expertsInSeafoodText": "الاستيراد والتصدير والتربية والبيع بالتجزئة والبيع بالجملة جميعها جزء من سلسلة التوريد المتكاملة.",
     "globalAmbition": "مؤسسة في الإمارات، تتوسع عالمياً",

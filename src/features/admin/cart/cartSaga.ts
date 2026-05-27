@@ -126,6 +126,10 @@ function mapApiItemToCartItem(dto: CartItemDto): CartItem {
     const price = parseFloat(pd?.price ?? "0") || 0;
     const discountPrice = pd?.discount_price ? parseFloat(pd.discount_price) || undefined : undefined;
     const finalPrice = parseFloat(pd?.final_price ?? pd?.price ?? "0") || price;
+    const unitPrice =
+        dto.unit_price != null ? parseFloat(dto.unit_price ?? "0") || 0 : undefined;
+    const subtotal =
+        dto.subtotal != null ? parseFloat(dto.subtotal ?? "0") || 0 : undefined;
 
     return {
         id: pd?.id ?? dto.product,
@@ -136,6 +140,8 @@ function mapApiItemToCartItem(dto: CartItemDto): CartItem {
         finalPrice,
         baseUnitPrice: parseFloat(dto.base_unit_price ?? "0") || price,
         preparationExtraPrice: parseFloat(dto.preparation_extra_price ?? "0") || 0,
+        unitPrice,
+        subtotal,
         preparationSpecification: dto.preparation_specification,
         preparationSpecificationDetails: dto.preparation_specification_details,
         preparationInstructions: dto.preparation_instructions,

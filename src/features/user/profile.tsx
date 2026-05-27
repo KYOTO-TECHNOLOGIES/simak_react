@@ -27,6 +27,7 @@ import useLanguageToggle from "../../hooks/useLanguageToggle";
 import BackendData from "../../components/ui/BackendData";
 import { useTranslation } from "react-i18next";
 import { normalizeMediaUrl } from "../../utils/media";
+import { getApiErrorMessage } from "../../utils/apiError";
 
 /* ═══════════════════════════════════════════════
    Types
@@ -701,9 +702,10 @@ const PersonalInfoTab: React.FC<PersonalInfoTabProps> = ({ profileData, loading,
 
             setOtpModalState(prev => ({ ...prev, isOpen: false, verifying: false }));
             toast.show(t("profile.otp.success", { type: type === "email" ? t("profile.personalInfo.email") : t("profile.personalInfo.phone") }), "success");
-        } catch (err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
-            const msg = err?.response?.data?.detail || t("profile.messages.otpVerifyError");
+        } catch (err: unknown) {
+            const msg = getApiErrorMessage(err, t("profile.messages.otpVerifyError"));
             setOtpModalState(prev => ({ ...prev, verifying: false, error: msg }));
+            toast.show(msg, "error");
         }
     };
 
@@ -1633,15 +1635,14 @@ const AddressesTab: React.FC<{ onSuccess: (msg: string) => void; onError: (msg: 
     }, []);
 
     const phoneVerified: boolean = Boolean(user?.is_phone_verified ?? user?.profile?.is_phone_verified);
-    const accountPhoneComposed = String(user?.phone_number || "").replace(/\s+/g, "");
     const composedAddressPhone = `${addrCountryCode}${(form.phone_number || "").replace(/[^\d]/g, "").replace(/^0+/, "")}`;
-    const isAddressPhoneSameAsAccount = Boolean(accountPhoneComposed) && composedAddressPhone === accountPhoneComposed;
+    const accountPhoneComposed = String(user?.phone_number || "").replace(/\s+/g, "");
     const addressPhoneReq = getAddrPhoneRequirements(addrCountryCode);
     const isAddressPhoneValid = (() => {
         const digits = (form.phone_number || "").replace(/[^\d]/g, "");
         return digits.length === addressPhoneReq.length && (!addressPhoneReq.pattern || addressPhoneReq.pattern.test(digits));
     })();
-    const isAddressPhoneOtpVerified = addressPhoneVerified || (phoneVerified && isAddressPhoneSameAsAccount);
+    const isAddressPhoneOtpVerified = phoneVerified || addressPhoneVerified;
 
     const resetForm = () => {
         const prefill = getPhonePrefill(user?.phone_number);
@@ -1895,7 +1896,7 @@ const AddressesTab: React.FC<{ onSuccess: (msg: string) => void; onError: (msg: 
                                     {addrErrors.phone_number && <p className="text-[10px] text-rose-500 font-medium px-1">{addrErrors.phone_number}</p>}
                                     {addressPhoneVerificationError && <p className="text-[10px] text-rose-500 font-medium px-1">{addressPhoneVerificationError}</p>}
 
-                                    {!isAddressPhoneOtpVerified && (
+                                    {!phoneVerified && !addressPhoneVerified && (
                                         <div className="px-1 pt-1 space-y-2">
                                             {addressPhoneOtpStep === "idle" ? (
                                                 <button
@@ -1908,15 +1909,24 @@ const AddressesTab: React.FC<{ onSuccess: (msg: string) => void; onError: (msg: 
                                                         }
                                                         try {
                                                             setSendingAddressOtp(true);
+                                                            const isPhoneChanged = composedAddressPhone !== accountPhoneComposed;
+                                                            if (isPhoneChanged && user?.id) {
+                                                                await profileApi.updateProfile(user.id, {
+                                                                    phone_number: composedAddressPhone,
+                                                                });
+                                                                const freshProfile = await profileApi.getMe();
+                                                                dispatch(setUser(freshProfile));
+                                                            }
                                                             await profileApi.sendProfileOtp({
                                                                 otp_type: "phone",
                                                                 phone_number: composedAddressPhone,
-                                                            } as any);
+                                                            });
                                                             setAddressPhoneOtpStep("otp");
-                                                        } catch (err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
-                                                            const apiErr = err?.response?.data;
-                                                            const detail = apiErr?.detail || apiErr?.message || (typeof apiErr === "string" ? apiErr : "Failed to send OTP. Try again.");
+                                                            onSuccess("OTP sent to your phone.");
+                                                        } catch (err: unknown) {
+                                                            const detail = getApiErrorMessage(err, "Failed to send OTP. Try again.");
                                                             setAddressPhoneVerificationError(detail);
+                                                            onError(detail);
                                                         } finally {
                                                             setSendingAddressOtp(false);
                                                         }
@@ -1958,9 +1968,8 @@ const AddressesTab: React.FC<{ onSuccess: (msg: string) => void; onError: (msg: 
                                                                 setAddressPhoneOtpStep("idle");
                                                                 setAddressPhoneOtp("");
                                                                 setAddrErrors(prev => { const n = { ...prev }; delete n.phone_number; return n; });
-                                                            } catch (err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
-                                                                const apiErr = err?.response?.data;
-                                                                const detail = apiErr?.detail || apiErr?.message || (typeof apiErr === "string" ? apiErr : "OTP verification failed.");
+                                                            } catch (err: unknown) {
+                                                                const detail = getApiErrorMessage(err, "OTP verification failed.");
                                                                 setAddressPhoneVerificationError(detail);
                                                             } finally {
                                                                 setVerifyingAddressOtp(false);
@@ -1975,7 +1984,7 @@ const AddressesTab: React.FC<{ onSuccess: (msg: string) => void; onError: (msg: 
                                             )}
                                         </div>
                                     )}
-                                    {isAddressPhoneOtpVerified && (
+                                    {!phoneVerified && addressPhoneVerified && (
                                         <p className="text-[10px] text-emerald-600 font-bold px-1 pt-1">Phone verified. You can save this address.</p>
                                     )}
                                 </div>

@@ -150,14 +150,17 @@
       }
     ],
     "categoryLabels": {
-      "freshFish": "新鲜鱼类",
-      "frozenFish": "冷冻鱼类",
-      "liveFish": "活鱼",
-      "lightFish": "轻鱼"
+      "liveFish": "鲜活",
+      "organicFish": "有机",
+      "freshFish": "新鲜",
+      "frozenFish": "冷冻",
+      "dryFish": "干货"
     },
     "download": "下载应用",
     "getItOn": "立即获取",
     "downloadOn": "立即下载",
+    "googlePlayAlt": "在 Google Play 上获取",
+    "appStoreAlt": "在 App Store 上下载",
     "weAccept": "我们接受",
     "paymentMethods": {
       "cards": "银行卡",
@@ -173,6 +176,12 @@
     "ourMissionText": "以完全的透明度、卓越的服务和对可持续性的承诺提供最新鲜的海鲜。每个产品都经过精心采购、专业处理，并以我们的客户所期望的质量交付。",
     "ourMissionText2": "SIMAK FRESH 建立在信任、可靠性和对优质海鲜应该让家庭、餐厅和零售商在整个地区及以外都能获得的信念之上。",
     "whyChooseUsTitle": "为什么选择 SIMAK FRESH",
+    "promise": {
+      "uaeExpertise": "阿联酋专长",
+      "globalNetwork": "全球网络",
+      "freshnessGuaranteed": "新鲜保证",
+      "premiumSourcing": "优质采购"
+    },
     "expertsInSeafood": "涵盖各个部门的海鲜专业知识",
     "expertsInSeafoodText": "进口、出口、养殖、零售和批发都是我们综合供应链的一部分。",
     "globalAmbition": "从阿联酋开展，面向全球拓展",

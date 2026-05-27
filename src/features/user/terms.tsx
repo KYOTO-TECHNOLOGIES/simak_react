@@ -16,7 +16,7 @@ const TermsOfServicePage: React.FC = () => {
         <ul className="mt-4 space-y-3 text-slate-600">
           <li className="flex gap-3 leading-7">
             <span className="mt-2 h-2 w-2 rounded-full bg-cyan-600 shrink-0" />
-            <span><strong>Availability:</strong> We offer Live, fresh, frozen, and dry seafood. Availability is subject to seasonal changes and stock levels.</span>
+            <span><strong>Availability:</strong> We offer Live, Organic, Fresh, Frozen and Dry seafood. Availability is subject to seasonal changes and stock levels.</span>
           </li>
           <li className="flex gap-3 leading-7">
             <span className="mt-2 h-2 w-2 rounded-full bg-cyan-600 shrink-0" />

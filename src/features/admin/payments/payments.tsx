@@ -22,6 +22,8 @@ import {
 } from "./paymentsSlice";
 import type { Payment, PaymentStatus, PaymentMethod } from "./paymentsSlice";
 import { useDebounce } from "../../../hooks/useDebounce";
+import { useToast } from "../../../components/ui/Toast";
+import { paymentMethodToApiValue } from "../../../utils/payment";
 
 /* --- COLUMN VISIBILITY --- */
 type ColumnKey = "paymentId" | "order" | "customer" | "amount" | "method" | "status" | "date" | "orderStatus";
@@ -128,15 +130,7 @@ const PaymentManagement: React.FC = () => {
     }
 
     if (methodFilter !== "All") {
-      const methodMap: Record<PaymentMethod, string> = {
-        UPI: "UPI",
-        Card: "ZIINA",
-        NetBanking: "NETBANKING",
-        Wallet: "WALLET",
-        COD: "COD",
-        "N/A": "",
-      };
-      const mappedMethod = methodMap[methodFilter];
+      const mappedMethod = paymentMethodToApiValue(methodFilter);
       if (mappedMethod) params.payment_method = mappedMethod;
     }
 
@@ -726,6 +720,7 @@ const PaymentDetailsView = ({
   const error = useSelector(selectPaymentsError);
   const refundStatus = useSelector(selectRefundStatus);
   const actionLoading = useSelector(selectActionLoading);
+  const toast = useToast();
 
   const [refundAmount, setRefundAmount] = useState("");
 
@@ -739,7 +734,23 @@ const PaymentDetailsView = ({
 
   const handleRefund = () => {
     if (!payment) return;
-    const fils = refundAmount ? parseInt((parseFloat(refundAmount) * 100).toString()) : undefined;
+
+    if (refundAmount.trim()) {
+      const parsed = parseFloat(refundAmount);
+      if (Number.isNaN(parsed) || parsed <= 0) {
+        toast.error("Please enter a valid refund amount.");
+        return;
+      }
+      if (parsed > payment.amount) {
+        toast.error(`Refund amount cannot exceed AED ${payment.amount.toLocaleString("en-IN")}.`);
+        return;
+      }
+    }
+
+    const fils = refundAmount.trim()
+      ? Math.round(parseFloat(refundAmount) * 100)
+      : undefined;
+
     dispatch(paymentsActions.createRefundRequest({ paymentId, amount_fils: fils }));
   };
 
@@ -808,7 +819,7 @@ const PaymentDetailsView = ({
               <DetailBox label="Amount" value={`AED ${payment.amount.toLocaleString("en-IN")}`} icon={<Receipt size={14} />} />
               <DetailBox label="Payment Method" value={payment.paymentMethod} icon={<Wallet size={14} />} />
               <DetailBox label="Transaction ID" value={payment.transactionId || "N/A"} icon={<Landmark size={14} />} />
-              <DetailBox label="Ziina Intent" value={payment.ziinaPaymentIntentId || "N/A"} icon={<CreditCard size={14} />} />
+              <DetailBox label="Payment Intent ID" value={payment.ziinaPaymentIntentId || "N/A"} icon={<CreditCard size={14} />} />
             </div>
 
             <div className="pt-6 border-t border-zinc-100">

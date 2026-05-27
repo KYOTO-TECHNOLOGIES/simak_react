@@ -25,10 +25,11 @@
     "showingResults": "عرض {{start}}–{{end}} من أصل {{total}} من النتائج"
   },
   "filters": {
-    "freshFish": "أسماك طازجة",
-    "frozenFish": "أسماك مجمدة",
-    "liveFish": "أسماك حية",
-    "lightFish": "أسماك خفيفة"
+    "liveFish": "حي",
+    "organicFish": "عضوي",
+    "freshFish": "طازج",
+    "frozenFish": "مجمد",
+    "dryFish": "مجفف"
   },
   "details": {
     "back": "رجوع",

@@ -5,6 +5,38 @@ import { paymentsActions } from "./paymentsSlice";
 import type { Payment, PaymentStatus, PaymentMethod } from "./paymentsSlice";
 import type { PaymentDto } from "./paymentsApi";
 import type { RootState } from "../../../app/store";
+import { emitToast } from "../../../components/ui/Toast";
+import { normalizeDisplayPaymentMethod } from "../../../utils/payment";
+
+function parseApiError(e: unknown, fallback: string): string {
+    const err = e as { response?: { data?: unknown; status?: number }; message?: string };
+    const data = err?.response?.data;
+
+    if (typeof data === "string" && data.trim()) return data;
+
+    if (data && typeof data === "object") {
+        const record = data as Record<string, unknown>;
+
+        if (typeof record.detail === "string") return record.detail;
+        if (Array.isArray(record.detail)) {
+            return record.detail
+                .map((item) => (typeof item === "string" ? item : JSON.stringify(item)))
+                .join(", ");
+        }
+        if (typeof record.message === "string") return record.message;
+        if (typeof record.error === "string") return record.error;
+
+        const fieldMessages = Object.entries(record).flatMap(([key, value]) => {
+            if (["detail", "message", "error"].includes(key)) return [];
+            if (Array.isArray(value)) return value.map((v) => `${key}: ${String(v)}`);
+            if (typeof value === "string") return [`${key}: ${value}`];
+            return [];
+        });
+        if (fieldMessages.length) return fieldMessages.join(". ");
+    }
+
+    return err?.message || fallback;
+}
 
 /* ── Normalize payment status ── */
 function normalizePaymentStatus(raw?: string): PaymentStatus {
@@ -19,14 +51,9 @@ function normalizePaymentStatus(raw?: string): PaymentStatus {
 }
 
 function normalizePaymentMethod(raw?: string): PaymentMethod {
-    if (!raw) return "N/A";
-    const map: Record<string, PaymentMethod> = {
-        ziina: "Card",
-        card: "Card",
-        cod: "COD",
-        cash_on_delivery: "COD",
-    };
-    return map[raw.toLowerCase()] ?? "N/A";
+    const label = normalizeDisplayPaymentMethod(raw, "N/A");
+    const allowed: PaymentMethod[] = ["UPI", "Card", "NetBanking", "Wallet", "COD", "N/A"];
+    return allowed.includes(label as PaymentMethod) ? (label as PaymentMethod) : "N/A";
 }
 
 /* ── Map DTO → Payment ── */
@@ -114,18 +141,32 @@ function* createRefundWorker(
 ): SagaIterator {
     try {
         const { paymentId, amount_fils } = action.payload;
-        yield call(paymentsApi.createRefund, paymentId, { amount_fils });
+        const result: {
+            message?: string;
+            refund_id?: string;
+            status?: string;
+            amount?: number;
+            currency?: string;
+        } = yield call(paymentsApi.createRefund, paymentId, { amount_fils });
+
         yield put(paymentsActions.createRefundSuccess());
-        // Refresh details after refund
+
+        const amountLabel =
+            typeof result?.amount === "number"
+                ? ` — AED ${(result.amount / 100).toFixed(2)}`
+                : "";
+        const successMsg =
+            result?.message ||
+            `Refund initiated successfully${result?.refund_id ? ` (${result.refund_id})` : ""}${amountLabel}`;
+
+        emitToast(successMsg, "success");
+
         yield put(paymentsActions.fetchPaymentDetailsRequest(paymentId));
         yield put(paymentsActions.fetchRefundStatusRequest(paymentId));
-    } catch (e: any) {
-        const errMsg =
-            e?.response?.data?.detail ||
-            e?.response?.data?.message ||
-            e?.message ||
-            "Failed to initiate refund";
+    } catch (e: unknown) {
+        const errMsg = parseApiError(e, "Failed to initiate refund");
         yield put(paymentsActions.createRefundFailure(errMsg));
+        emitToast(errMsg, "error");
     }
 }
 
@@ -135,13 +176,13 @@ function* fetchRefundStatusWorker(
     try {
         const raw: any = yield call(paymentsApi.getRefundStatus, action.payload);
         yield put(paymentsActions.fetchRefundStatusSuccess(raw));
-    } catch (e: any) {
-        const errMsg =
-            e?.response?.data?.detail ||
-            e?.response?.data?.message ||
-            e?.message ||
-            "Failed to fetch refund status";
+    } catch (e: unknown) {
+        const status = (e as { response?: { status?: number } })?.response?.status;
+        const errMsg = parseApiError(e, "Failed to fetch refund status");
         yield put(paymentsActions.fetchRefundStatusFailure(errMsg));
+        if (status !== 404) {
+            emitToast(errMsg, "error");
+        }
     }
 }
 

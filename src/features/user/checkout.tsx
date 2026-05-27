@@ -300,13 +300,12 @@ const CheckoutPage: React.FC = () => {
 
   const accountPhoneComposed = String(user?.phone_number || "").replace(/\s+/g, "");
   const composedAddressPhone = `${addrCountryCode}${(addressForm.phone_number || "").replace(/[^\d]/g, "").replace(/^0+/, "")}`;
-  const isAddressPhoneSameAsAccount = Boolean(accountPhoneComposed) && composedAddressPhone === accountPhoneComposed;
   const isAddressPhoneValid = (() => {
     const req = getPhoneRequirements(addrCountryCode);
     const digits = (addressForm.phone_number || "").replace(/[^\d]/g, "");
     return digits.length === req.length && (!req.pattern || req.pattern.test(digits));
   })();
-  const isAddressPhoneOtpVerified = addressPhoneVerified || (phoneVerified && isAddressPhoneSameAsAccount);
+  const isAddressPhoneOtpVerified = phoneVerified || addressPhoneVerified;
 
   useEffect(() => {
     if (!showAddressForm) return;
@@ -1100,7 +1099,7 @@ const CheckoutPage: React.FC = () => {
                           <p className="text-[10px] text-rose-500 font-medium px-1">{addressPhoneVerificationError}</p>
                         )}
 
-                        {!isAddressPhoneOtpVerified && (
+                        {!phoneVerified && !addressPhoneVerified && (
                           <div className="px-1 pt-1 space-y-2">
                             {addressPhoneOtpStep === "idle" ? (
                               <div className="space-y-2">
@@ -1129,6 +1128,12 @@ const CheckoutPage: React.FC = () => {
                                     }
                                     try {
                                       setSendingAddressOtp(true);
+                                      const isPhoneChanged = composedAddressPhone !== accountPhoneComposed;
+                                      if (isPhoneChanged && user?.id) {
+                                        await profileApi.updateProfile(user.id, { phone_number: composedAddressPhone } as any);
+                                        const me = await profileApi.getMe();
+                                        dispatch(setUser(me));
+                                      }
                                       await profileApi.sendProfileOtp({
                                         otp_type: "phone",
                                         phone_number: composedAddressPhone,
@@ -1136,9 +1141,12 @@ const CheckoutPage: React.FC = () => {
                                       } as any);
                                       setAddressPhoneOtpStep("otp");
                                     } catch (err: any) {
-                                      const apiErr = err?.response?.data;
-                                      const detail = apiErr?.detail || apiErr?.message || (typeof apiErr === "string" ? apiErr : t("verifyPhone.sendError", { defaultValue: "Failed to send OTP. Try again." }));
+                                      const detail = getApiErrorMessage(
+                                        err,
+                                        t("verifyPhone.sendError", { defaultValue: "Failed to send OTP. Try again." })
+                                      );
                                       setAddressPhoneVerificationError(detail);
+                                      toast.show(detail, "error");
                                     } finally {
                                       setSendingAddressOtp(false);
                                     }
@@ -1197,10 +1205,10 @@ const CheckoutPage: React.FC = () => {
                                 </button>
                               </div>
                             )}
-                            {isAddressPhoneOtpVerified && (
-                              <p className="text-[10px] text-emerald-600 font-bold">{t("verifyPhone.success", { defaultValue: "Phone verified. You can now place your order." })}</p>
-                            )}
                           </div>
+                        )}
+                        {!phoneVerified && addressPhoneVerified && (
+                          <p className="text-[10px] text-emerald-600 font-bold px-1 pt-1">{t("verifyPhone.success", { defaultValue: "Phone verified. You can now place your order." })}</p>
                         )}
                       </div>
 

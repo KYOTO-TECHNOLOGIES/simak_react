@@ -18,6 +18,9 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { deliveryApi, type DeliveryBoyUser } from "../../delivery/deliveryApi";
+import { getApiErrorMessage } from "../../../utils/apiError";
+import { toUaeE164, validateUaeMobile } from "../../../utils/uaePhone";
+import UaePhoneInput from "../../../components/ui/UaePhoneInput";
 
 const EMIRATES = [
   { value: "abu_dhabi", label: "Abu Dhabi" },
@@ -46,8 +49,12 @@ type FormState = typeof EMPTY_FORM;
 
 function CreateModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
   const [form, setForm] = useState<FormState>({ ...EMPTY_FORM });
+  const [phoneLocal, setPhoneLocal] = useState("");
+  const [emergencyPhoneLocal, setEmergencyPhoneLocal] = useState("");
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [phoneError, setPhoneError] = useState<string | null>(null);
+  const [emergencyPhoneError, setEmergencyPhoneError] = useState<string | null>(null);
 
   const set = (field: keyof FormState, value: any) =>
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -62,32 +69,49 @@ function CreateModal({ onClose, onCreated }: { onClose: () => void; onCreated: (
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.first_name.trim()) { setErr("First name is required."); return; }
-    if (!form.email.trim() && !form.phone_number.trim()) { setErr("Email or phone number is required."); return; }
-    setSaving(true);
     setErr(null);
+
+    if (!form.first_name.trim()) {
+      setErr("First name is required.");
+      return;
+    }
+
+    const phoneRequired = !form.email.trim();
+    const nextPhoneError = validateUaeMobile(phoneLocal, { required: phoneRequired });
+    const nextEmergencyError = emergencyPhoneLocal
+      ? validateUaeMobile(emergencyPhoneLocal)
+      : null;
+
+    setPhoneError(nextPhoneError);
+    setEmergencyPhoneError(nextEmergencyError);
+
+    if (!form.email.trim() && !phoneLocal) {
+      setErr("Email or UAE phone number is required.");
+      return;
+    }
+    if (nextPhoneError || nextEmergencyError) {
+      setErr(nextPhoneError || nextEmergencyError);
+      return;
+    }
+
+    const phoneE164 = toUaeE164(phoneLocal);
+    const emergencyE164 = emergencyPhoneLocal ? toUaeE164(emergencyPhoneLocal) : undefined;
+
+    setSaving(true);
     try {
       await deliveryApi.adminCreateDeliveryBoy({
         ...form,
         email: form.email.trim() || undefined,
-        phone_number: form.phone_number.trim() || undefined,
+        phone_number: phoneE164 || undefined,
         vehicle_number: form.vehicle_number.trim() || undefined,
         identity_number: form.identity_number.trim() || undefined,
-        emergency_contact: form.emergency_contact.trim() || undefined,
+        emergency_contact: emergencyE164,
         notes: form.notes.trim() || undefined,
       });
       onCreated();
       onClose();
-    } catch (e: any) {
-      const data = e?.response?.data;
-      if (data && typeof data === "object") {
-        const msg = Object.entries(data)
-          .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(" ") : v}`)
-          .join(" | ");
-        setErr(msg);
-      } else {
-        setErr(e?.message || "Failed to create delivery boy.");
-      }
+    } catch (e: unknown) {
+      setErr(getApiErrorMessage(e, "Failed to create delivery boy."));
     } finally {
       setSaving(false);
     }
@@ -127,10 +151,19 @@ function CreateModal({ onClose, onCreated }: { onClose: () => void; onCreated: (
             </div>
             <div className="space-y-1.5">
               <label className={labelCls}>Phone Number</label>
-              <input className={inputCls} value={form.phone_number} onChange={(e) => set("phone_number", e.target.value)} placeholder="+971 54 544 6111" />
+              <UaePhoneInput
+                id="create-delivery-boy-phone"
+                value={phoneLocal}
+                onChange={(local) => {
+                  setPhoneLocal(local);
+                  if (phoneError) setPhoneError(validateUaeMobile(local, { required: !form.email.trim() }));
+                }}
+                error={phoneError}
+                disabled={saving}
+              />
             </div>
           </div>
-          <p className="text-[10px] text-[#A1A1AA] -mt-6 px-1">At least one of email or phone is required.</p>
+          <p className="text-[10px] text-[#A1A1AA] -mt-6 px-1">At least one of email or UAE mobile is required.</p>
 
           {/* Emirates */}
           <div className="space-y-3">
@@ -171,8 +204,17 @@ function CreateModal({ onClose, onCreated }: { onClose: () => void; onCreated: (
 
           {/* Emergency Contact */}
           <div className="space-y-1.5">
-            <label className={labelCls}>Emergency Contact</label>
-            <input className={inputCls} value={form.emergency_contact} onChange={(e) => set("emergency_contact", e.target.value)} placeholder="+971 54 544 6111" />
+            <label className={labelCls}>Emergency Contact (UAE mobile)</label>
+            <UaePhoneInput
+              id="create-delivery-boy-emergency"
+              value={emergencyPhoneLocal}
+              onChange={(local) => {
+                setEmergencyPhoneLocal(local);
+                if (emergencyPhoneError) setEmergencyPhoneError(local ? validateUaeMobile(local) : null);
+              }}
+              error={emergencyPhoneError}
+              disabled={saving}
+            />
           </div>
 
           {/* Notes */}
@@ -205,7 +247,7 @@ function CreateModal({ onClose, onCreated }: { onClose: () => void; onCreated: (
           {err && (
             <div className="p-4 bg-rose-50 border border-rose-100 rounded-2xl flex items-start gap-3 animate-in fade-in slide-in-from-top-1">
               <AlertCircle size={16} className="text-rose-500 shrink-0 mt-0.5" />
-              <p className="text-xs font-medium text-rose-600">{err}</p>
+              <p className="text-xs font-medium text-rose-600 whitespace-pre-line">{err}</p>
             </div>
           )}
         </form>
@@ -258,8 +300,8 @@ const DeliveryBoysList: React.FC = () => {
     try {
       const data = await deliveryApi.adminListDeliveryBoys();
       setAllBoys(data);
-    } catch (e: any) {
-      setError(e?.response?.data?.detail || e?.message || "Failed to load delivery boys");
+    } catch (e: unknown) {
+      setError(getApiErrorMessage(e, "Failed to load delivery boys"));
     } finally {
       setLoading(false);
     }

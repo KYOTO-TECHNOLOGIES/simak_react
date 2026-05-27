@@ -109,6 +109,8 @@ export interface CartItem {
     finalPrice: number;
     baseUnitPrice?: number;
     preparationExtraPrice?: number;
+    unitPrice?: number;
+    subtotal?: number;
     preparationSpecification?: number | null;
     preparationSpecificationDetails?: any | null;
     preparationInstructions?: string | null;
@@ -203,14 +205,18 @@ export const isCartItemInStock = (item: CartItem) =>
 // User cart selectors
 export const selectCartItems = (state: RootState) => state.cart.items;
 export const selectCartTotal = (state: RootState) =>
-    Number(state.cart.items.reduce((total, item) => total + item.finalPrice * item.quantity, 0).toFixed(2));
+    Number(
+        state.cart.items
+            .reduce((total, item) => total + (item.subtotal ?? item.finalPrice * item.quantity), 0)
+            .toFixed(2)
+    );
 export const selectInStockCartItems = (state: RootState) =>
     state.cart.items.filter(isCartItemInStock);
 export const selectInStockCartTotal = (state: RootState) =>
     Number(
         state.cart.items
             .filter(isCartItemInStock)
-            .reduce((total, item) => total + item.finalPrice * item.quantity, 0)
+            .reduce((total, item) => total + (item.subtotal ?? item.finalPrice * item.quantity), 0)
             .toFixed(2)
     );
 export const selectCartCount = (state: RootState) =>

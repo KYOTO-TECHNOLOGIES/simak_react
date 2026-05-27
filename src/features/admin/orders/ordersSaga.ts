@@ -5,6 +5,7 @@ import { ordersActions } from "./ordersSlice";
 import type { Order, OrderItem, OrderStatus, PaymentStatus, ShippingAddress, Payment, StatusHistoryEntry } from "./ordersSlice";
 import type { OrderDto, OrderItemDto } from "./ordersApi";
 import type { RootState } from "../../../app/store";
+import { normalizeDisplayPaymentMethod } from "../../../utils/payment";
 
 /* ── Normalize status strings from backend ── */
 function normalizeOrderStatus(raw: string): OrderStatus {
@@ -73,7 +74,7 @@ function mapOrderDtoToOrder(dto: OrderDto): Order {
             transactionId: dto.payment.transaction_id ?? "",
             amount: parseFloat(dto.payment.amount) || 0,
             status: dto.payment.status ?? "",
-            paymentMethod: dto.payment.payment_method ?? "",
+            paymentMethod: normalizeDisplayPaymentMethod(dto.payment.payment_method),
             receiptNumber: dto.payment.receipt?.receipt_number ?? null,
             createdAt: dto.payment.created_at ?? "",
         }

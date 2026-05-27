@@ -44,8 +44,8 @@ const Home: React.FC = () => {
   return (
     <div className="flex flex-col bg-white">
       <Helmet>
-        <title>SIMAK FRESH - Live, Fresh, Frozen and Dry Seafood Delivery in UAE</title>
-        <meta name="description" content="UAE's best online Live, Fresh, Frozen and Dry seafood shop. Get premium quality fish and cuts delivered fresh to your door." />
+        <title>SIMAK FRESH - Live, Organic, Fresh, Frozen and Dry Seafood Delivery in UAE</title>
+        <meta name="description" content="UAE's best online Live, Organic, Fresh, Frozen and Dry seafood shop. Get premium quality fish and cuts delivered fresh to your door." />
       </Helmet>
       <Hero />
       <ShopByCategorySection />

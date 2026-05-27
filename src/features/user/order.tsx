@@ -14,6 +14,7 @@ import BackendData from "../../components/ui/BackendData";
 import useLanguageToggle from "../../hooks/useLanguageToggle";
 import { useAppSelector } from "../../hooks";
 import { API_BASE_URL } from "../../config/constants";
+import { normalizeDisplayPaymentMethod } from "../../utils/payment";
 
 /* ══════════════════════════════════════════════════
    STATUS HELPERS
@@ -1146,9 +1147,7 @@ const OrderDetail: React.FC<{ orderId: number }> = ({ orderId }) => {
                                     <div>
                                         <p className="text-sm font-bold text-slate-400 mb-1">{t("detail.method")}</p>
                                         <p className="font-black text-lg text-slate-900">
-                                            {(payment.payment_method || "").toUpperCase() === "ZIINA"
-                                                ? t("detail.online")
-                                                : payment.payment_method}
+                                            {normalizeDisplayPaymentMethod(payment.payment_method, payment.payment_method ?? "")}
                                         </p>
                                     </div>
                                     {payment.transaction_id && (

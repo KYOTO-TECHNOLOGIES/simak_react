@@ -6,10 +6,8 @@ import {
     Facebook,
     Instagram,
     Twitter,
-    Youtube,
     ArrowRight,
     CreditCard,
-    Smartphone,
     MessageCircle,
     ShieldCheck,
 } from "lucide-react";
@@ -18,12 +16,49 @@ import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { BrandLogo } from "../../common/BrandLogo";
 import brandNameSvg from "../../../assets/SIMAK FRESH FINAL SVG-01 riz.svg";
+import { useCategories } from "../../../hooks/queries";
+import { sortCategories } from "../../../utils/categories";
+import { FaTiktok, FaSnapchat } from "react-icons/fa6";
+
+const STORE_BADGES_IMAGE = "/app-store-png-logo-33123.png";
+const PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=com.simakfresh.app";
+const APP_STORE_URL = "https://apps.apple.com/app/simak-fresh/id677057453";
+
+type StoreBadgeLinkProps = {
+    href: string;
+    label: string;
+    variant: "google-play" | "app-store";
+};
+
+const StoreBadgeLink: React.FC<StoreBadgeLinkProps> = ({ href, label, variant }) => (
+    <a
+        href={href}
+        target={href.startsWith("http") ? "_blank" : undefined}
+        rel={href.startsWith("http") ? "noopener noreferrer" : undefined}
+        aria-label={label}
+        className="group relative block w-full max-w-[10.75rem] aspect-[3.35/1] overflow-hidden rounded-lg bg-black/40 ring-1 ring-white/10 transition-all duration-200 hover:scale-[1.03] hover:ring-yellow-400/50 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-yellow-400"
+    >
+        <img
+            src={STORE_BADGES_IMAGE}
+            alt=""
+            aria-hidden
+            loading="lazy"
+            decoding="async"
+            draggable={false}
+            className={`absolute left-0 w-full h-[200%] max-w-none object-contain ${
+                variant === "google-play" ? "top-0 object-top" : "bottom-0 object-bottom"
+            }`}
+        />
+    </a>
+);
 
 /* ── Component ── */
 const Footer: React.FC = () => {
     const { t, i18n } = useTranslation("common");
     const year = new Date().getFullYear();
     const currentLanguage = i18n.language;
+    const { data: categories = [], isLoading: categoriesLoading } = useCategories(i18n.language);
+    const footerCategories = sortCategories(categories);
 
     const companyLinks = t("footer.companyLinks", { returnObjects: true }) as { label: string }[];
     const supportLinks = t("footer.supportLinks", { returnObjects: true }) as { label: string }[];
@@ -47,34 +82,16 @@ const Footer: React.FC = () => {
         "/terms-of-service",
     ];
 
-    const footerCategories = [
-        {
-            slug: "fresh-fish",
-            label: t("footer.categoryLabels.freshFish", "Fresh Fish"),
-        },
-        {
-            slug: "frozen-fish",
-            label: t("footer.categoryLabels.frozenFish", "Frozen Fish"),
-        },
-        {
-            slug: "live-fish",
-            label: t("footer.categoryLabels.liveFish", "Live Fish"),
-        },
-        {
-            slug: "light-fish",
-            label: t("footer.categoryLabels.lightFish", "Light Fish"),
-        },
-    ];
-
-    const getCategoryPath = (slug: string) => {
-        return `/products?category_slug=${encodeURIComponent(slug)}`;
+    const getCategoryPath = (name: string) => {
+        return `/products?category_name=${encodeURIComponent(name)}`;
     };
 
     const socials = [
         { icon: <Instagram size={18} />, href: "#", label: "Instagram" },
         { icon: <Facebook size={18} />, href: "#", label: "Facebook" },
         { icon: <Twitter size={18} />, href: "#", label: "Twitter" },
-        { icon: <Youtube size={18} />, href: "#", label: "YouTube" },
+        { icon: <FaTiktok size={18} />, href: "#", label: "TikTok" },
+        { icon: <FaSnapchat size={18} />, href: "#", label: "Snapchat" },
     ];
 
     return (
@@ -189,16 +206,24 @@ const Footer: React.FC = () => {
                                 {t("footer.shop")}
                             </h4>
                             <ul className="space-y-2.5">
-                                {footerCategories.map((category) => (
-                                    <li key={category.slug}>
-                                        <Link
-                                            to={getCategoryPath(category.slug)}
-                                            className="text-xs hover:text-yellow-400 transition-colors"
-                                        >
-                                            {category.label}
-                                        </Link>
-                                    </li>
-                                ))}
+                                {categoriesLoading ? (
+                                    [...Array(4)].map((_, i) => (
+                                        <li key={i}>
+                                            <span className="block h-3 w-24 rounded bg-cyan-800/60 animate-pulse" />
+                                        </li>
+                                    ))
+                                ) : (
+                                    footerCategories.map((category) => (
+                                        <li key={category.id}>
+                                            <Link
+                                                to={getCategoryPath(category.name)}
+                                                className="text-xs hover:text-yellow-400 transition-colors"
+                                            >
+                                                {category.localizedName || category.name}
+                                            </Link>
+                                        </li>
+                                    ))
+                                )}
                             </ul>
                         </div>
 
@@ -263,21 +288,17 @@ const Footer: React.FC = () => {
                             <h4 className="text-xs font-bold text-white uppercase tracking-widest mb-4">
                                 {t("footer.download")}
                             </h4>
-                            <div className="space-y-2 mb-6">
-                                <button className="flex items-center gap-2 w-full px-3 py-2.5 bg-cyan-900 border border-cyan-800 rounded-xl hover:bg-cyan-800 transition-all">
-                                    <Smartphone size={16} className="text-cyan-300" />
-                                    <div className="text-start">
-                                        <p className="text-[9px] text-cyan-200/60 leading-none">{t("footer.getItOn")}</p>
-                                        <p className="text-xs font-bold text-white leading-tight">Google Play</p>
-                                    </div>
-                                </button>
-                                <button className="flex items-center gap-2 w-full px-3 py-2.5 bg-cyan-900 border border-cyan-800 rounded-xl hover:bg-cyan-800 transition-all">
-                                    <Smartphone size={16} className="text-cyan-300" />
-                                    <div className="text-start">
-                                        <p className="text-[9px] text-cyan-200/60 leading-none">{t("footer.downloadOn")}</p>
-                                        <p className="text-xs font-bold text-white leading-tight">App Store</p>
-                                    </div>
-                                </button>
+                            <div className="flex flex-col gap-2.5 mb-6 w-full max-w-[10.75rem]">
+                                <StoreBadgeLink
+                                    href={PLAY_STORE_URL}
+                                    variant="google-play"
+                                    label={t("footer.googlePlayAlt", "Get it on Google Play")}
+                                />
+                                <StoreBadgeLink
+                                    href={APP_STORE_URL}
+                                    variant="app-store"
+                                    label={t("footer.appStoreAlt", "Download on the App Store")}
+                                />
                             </div>
 
                             <h4 className="text-xs font-bold text-white uppercase tracking-widest mb-3">

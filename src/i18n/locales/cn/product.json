@@ -24,10 +24,11 @@
     "showingResults": "显示第 {{start}}–{{end}} 个结果，共 {{total}} 个"
   },
   "filters": {
-    "freshFish": "新鲜鱼类",
-    "frozenFish": "冷冻鱼类",
-    "liveFish": "活鱼",
-    "lightFish": "轻鱼"
+    "liveFish": "鲜活",
+    "organicFish": "有机",
+    "freshFish": "新鲜",
+    "frozenFish": "冷冻",
+    "dryFish": "干货"
   },
   "details": {
     "back": "返回",

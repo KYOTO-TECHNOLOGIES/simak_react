@@ -14,6 +14,7 @@ import { useToast } from "../../components/ui/Toast";
 import useLanguageToggle from "../../hooks/useLanguageToggle";
 import { productsApi } from "../admin/products/productApi";
 import { processRestockAlerts } from "../../utils/restockAlerts";
+import { sortCategories } from "../../utils/categories";
 
 import logo from "../../assets/SIMAK FRESH FINAL LOGO-01.svg";
 import InitialLoader from "../../components/loader/spinnerLoader";
@@ -204,6 +205,10 @@ const UserProductsPage: React.FC = () => {
 
     // Fetch categories from backend
     const { data: backendCategories = [] } = useCategories(i18n.language);
+    const sortedCategories = useMemo(
+        () => sortCategories(backendCategories),
+        [backendCategories]
+    );
 
     // Filters state
     const [searchTerm, setSearchTerm] = useState(searchParams.get("q") || "");
@@ -417,7 +422,7 @@ const UserProductsPage: React.FC = () => {
                             </button>
 
                             {/* Category Chips — dynamic from backend */}
-                            {backendCategories.map((cat) => {
+                            {sortedCategories.map((cat) => {
                                 const isActive = categoryName === cat.name;
                                 return (
                                     <button

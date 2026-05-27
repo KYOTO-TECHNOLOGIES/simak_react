@@ -19,6 +19,13 @@ import {
 } from "lucide-react";
 import { deliveryApi, type DeliveryBoyUser } from "../../delivery/deliveryApi";
 import { ordersApi, type OrderDto } from "../orders/ordersApi";
+import { getApiErrorMessage } from "../../../utils/apiError";
+import {
+  phoneFromApiToLocal,
+  toUaeE164,
+  validateUaeMobile,
+} from "../../../utils/uaePhone";
+import UaePhoneInput from "../../../components/ui/UaePhoneInput";
 
 /* ─── UAE emirates ─── */
 const EMIRATES = [
@@ -55,17 +62,21 @@ function EditModal({ boy, onClose, onSaved }: EditModalProps) {
     first_name: boy.first_name ?? "",
     last_name: boy.last_name ?? "",
     email: boy.email ?? "",
-    phone_number: boy.phone_number ?? "",
     is_active: boy.is_active,
     is_available: boy.delivery_profile?.is_available ?? true,
     assigned_emirates: boy.delivery_profile?.assigned_emirates ?? [],
     vehicle_number: boy.delivery_profile?.vehicle_number ?? "",
     identity_number: boy.delivery_profile?.identity_number ?? "",
-    emergency_contact: boy.delivery_profile?.emergency_contact ?? "",
     notes: boy.delivery_profile?.notes ?? "",
   });
+  const [phoneLocal, setPhoneLocal] = useState(() => phoneFromApiToLocal(boy.phone_number));
+  const [emergencyPhoneLocal, setEmergencyPhoneLocal] = useState(() =>
+    phoneFromApiToLocal(boy.delivery_profile?.emergency_contact)
+  );
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [phoneError, setPhoneError] = useState<string | null>(null);
+  const [emergencyPhoneError, setEmergencyPhoneError] = useState<string | null>(null);
 
   const set = (field: keyof typeof form, value: any) =>
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -80,31 +91,44 @@ function EditModal({ boy, onClose, onSaved }: EditModalProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSaving(true);
     setErr(null);
+
+    const phoneRequired = !form.email.trim();
+    const nextPhoneError = validateUaeMobile(phoneLocal, { required: phoneRequired });
+    const nextEmergencyError = emergencyPhoneLocal
+      ? validateUaeMobile(emergencyPhoneLocal)
+      : null;
+
+    setPhoneError(nextPhoneError);
+    setEmergencyPhoneError(nextEmergencyError);
+
+    if (!form.email.trim() && !phoneLocal) {
+      setErr("Email or UAE phone number is required.");
+      return;
+    }
+    if (nextPhoneError || nextEmergencyError) {
+      setErr(nextPhoneError || nextEmergencyError);
+      return;
+    }
+
+    const phoneE164 = toUaeE164(phoneLocal);
+    const emergencyE164 = emergencyPhoneLocal ? toUaeE164(emergencyPhoneLocal) : undefined;
+
+    setSaving(true);
     try {
       const updated = await deliveryApi.adminUpdateDeliveryBoy(boy.id, {
         ...form,
         email: form.email.trim() || undefined,
-        phone_number: form.phone_number.trim() || undefined,
+        phone_number: phoneE164 || undefined,
         vehicle_number: form.vehicle_number.trim() || undefined,
         identity_number: form.identity_number.trim() || undefined,
-        emergency_contact: form.emergency_contact.trim() || undefined,
+        emergency_contact: emergencyE164,
         notes: form.notes.trim() || undefined,
       });
       onSaved(updated);
       onClose();
-    } catch (e: any) {
-      const data = e?.response?.data;
-      if (data && typeof data === "object") {
-        setErr(
-          Object.entries(data)
-            .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(" ") : v}`)
-            .join(" | ")
-        );
-      } else {
-        setErr(e?.message || "Failed to save changes.");
-      }
+    } catch (e: unknown) {
+      setErr(getApiErrorMessage(e, "Failed to save changes."));
     } finally {
       setSaving(false);
     }
@@ -145,7 +169,16 @@ function EditModal({ boy, onClose, onSaved }: EditModalProps) {
             </div>
             <div className="space-y-1.5">
               <label className={labelCls}>Phone</label>
-              <input className={inputCls} value={form.phone_number} onChange={(e) => set("phone_number", e.target.value)} />
+              <UaePhoneInput
+                id="edit-delivery-boy-phone"
+                value={phoneLocal}
+                onChange={(local) => {
+                  setPhoneLocal(local);
+                  if (phoneError) setPhoneError(validateUaeMobile(local, { required: !form.email.trim() }));
+                }}
+                error={phoneError}
+                disabled={saving}
+              />
             </div>
           </div>
 
@@ -188,8 +221,17 @@ function EditModal({ boy, onClose, onSaved }: EditModalProps) {
 
           {/* Emergency */}
           <div className="space-y-1.5">
-            <label className={labelCls}>Emergency Contact</label>
-            <input className={inputCls} value={form.emergency_contact} onChange={(e) => set("emergency_contact", e.target.value)} />
+            <label className={labelCls}>Emergency Contact (UAE mobile)</label>
+            <UaePhoneInput
+              id="edit-delivery-boy-emergency"
+              value={emergencyPhoneLocal}
+              onChange={(local) => {
+                setEmergencyPhoneLocal(local);
+                if (emergencyPhoneError) setEmergencyPhoneError(local ? validateUaeMobile(local) : null);
+              }}
+              error={emergencyPhoneError}
+              disabled={saving}
+            />
           </div>
 
           {/* Notes */}
@@ -235,7 +277,7 @@ function EditModal({ boy, onClose, onSaved }: EditModalProps) {
           {err && (
             <div className="p-4 bg-rose-50 border border-rose-100 rounded-2xl flex items-start gap-3">
               <XCircle className="text-rose-500 shrink-0 mt-0.5" size={16} />
-              <p className="text-xs font-medium text-rose-600">{err}</p>
+              <p className="text-xs font-medium text-rose-600 whitespace-pre-line">{err}</p>
             </div>
           )}
         </form>
@@ -282,8 +324,8 @@ const DeliveryBoyDetailPage: React.FC = () => {
       ]);
       setBoy(boyData);
       setOrders(ordersData.results || []);
-    } catch (e: any) {
-      setError(e?.response?.data?.detail || e?.message || "Failed to load.");
+    } catch (e: unknown) {
+      setError(getApiErrorMessage(e, "Failed to load."));
     } finally {
       setLoading(false);
     }

@@ -150,14 +150,17 @@
       }
     ],
     "categoryLabels": {
-      "freshFish": "Fresh Fish",
-      "frozenFish": "Frozen Fish",
-      "liveFish": "Live Fish",
-      "lightFish": "Light Fish"
+      "liveFish": "Live",
+      "organicFish": "Organic",
+      "freshFish": "Fresh",
+      "frozenFish": "Frozen",
+      "dryFish": "Dry"
     },
     "download": "Download App",
     "getItOn": "Get it on",
     "downloadOn": "Download on",
+    "googlePlayAlt": "Get it on Google Play",
+    "appStoreAlt": "Download on the App Store",
     "weAccept": "We Accept",
     "paymentMethods": {
       "cards": "All Debit or Credit Cards",
@@ -173,6 +176,12 @@
     "ourMissionText": "We deliver the freshest seafood with complete transparency, exceptional service, and a commitment to sustainability. Every product is carefully sourced, expertly handled, and delivered with the quality our customers expect.",
     "ourMissionText2": "SIMAK FRESH is built on trust, reliability, and the belief that premium seafood should be available to families, restaurants, and retailers across the region and beyond.",
     "whyChooseUsTitle": "Why Choose SIMAK FRESH",
+    "promise": {
+      "uaeExpertise": "UAE Expertise",
+      "globalNetwork": "Global Network",
+      "freshnessGuaranteed": "Freshness Guaranteed",
+      "premiumSourcing": "Premium Sourcing"
+    },
     "expertsInSeafood": "Seafood expertise across every sector",
     "expertsInSeafoodText": "Import, export, farming, retail, and wholesale are all part of our integrated supply chain.",
     "globalAmbition": "Built in UAE, expanding globally",

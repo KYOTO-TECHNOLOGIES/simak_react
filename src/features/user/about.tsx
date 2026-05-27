@@ -51,7 +51,7 @@ const AboutPage: React.FC = () => {
           </motion.div>
           <h1 className="mb-6 text-3xl font-black tracking-tight sm:text-5xl lg:text-6xl">
             <span className="bg-gradient-to-r from-slate-900 via-slate-800 to-cyan-600 bg-clip-text text-transparent">
-              {t("about.heading", "Dubai roots, global seafood expertise")}
+              {t("about.heading", "From UAE roots to global seafood expertise")}
             </span>
           </h1>
           <p className="mx-auto max-w-2xl text-lg leading-relaxed text-slate-600 font-medium">
@@ -107,10 +107,10 @@ const AboutPage: React.FC = () => {
             <h2 className="relative text-2xl font-black mb-6">{t("about.whyChooseUsTitle", "The SIMAK Promise")}</h2>
             <div className="relative space-y-8">
               {[
-                { icon: <MapPin />, title: "Dubai Expertise" },
-                { icon: <Globe />, title: "Global Network" },
-                { icon: <ShieldCheck />, title: "Freshness Guaranteed" },
-                { icon: <Award />, title: "Premium Sourcing" }
+                { icon: <MapPin />, title: t("about.promise.uaeExpertise", "UAE Expertise") },
+                { icon: <Globe />, title: t("about.promise.globalNetwork", "Global Network") },
+                { icon: <ShieldCheck />, title: t("about.promise.freshnessGuaranteed", "Freshness Guaranteed") },
+                { icon: <Award />, title: t("about.promise.premiumSourcing", "Premium Sourcing") }
               ].map((item, idx) => (
                 <div key={idx} className="flex items-center gap-4 group">
                   <div className="p-2.5 rounded-xl bg-white/20 backdrop-blur-md group-hover:bg-white group-hover:text-cyan-600 transition-all">

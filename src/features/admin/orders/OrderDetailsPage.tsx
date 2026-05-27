@@ -9,6 +9,8 @@ import { ordersActions } from "./ordersSlice";
 import { deliveryApi } from "../../delivery/deliveryApi";
 import type { DeliveryBoyUser, DeliveryAssignment, DeliveryCancelRequest } from "../../delivery/deliveryApi";
 import { useToast } from "../../../components/ui/Toast";
+import { normalizeDisplayPaymentMethod } from "../../../utils/payment";
+import { getApiErrorMessage } from "../../../utils/apiError";
 
 type OrderItem = {
   id: number;
@@ -232,7 +234,7 @@ const OrderDetailsPage: React.FC = () => {
               transactionId: raw.payment.transaction_id ?? "",
               amount: parseFloat(raw.payment.amount) || 0,
               status: raw.payment.status ?? "",
-              paymentMethod: raw.payment.payment_method ?? "",
+              paymentMethod: normalizeDisplayPaymentMethod(raw.payment.payment_method),
               receiptNumber: raw.payment.receipt?.receipt_number ?? null,
               createdAt: raw.payment.created_at ?? "",
             }
@@ -317,7 +319,7 @@ const OrderDetailsPage: React.FC = () => {
   useEffect(() => {
     deliveryApi.adminListDeliveryBoys()
       .then((boys) => { setDeliveryBoys(boys); setDeliveryBoysError(null); })
-      .catch((e: any) => setDeliveryBoysError(e?.response?.data?.detail || e?.message || "Failed to load delivery boys"));
+      .catch((e: unknown) => setDeliveryBoysError(getApiErrorMessage(e, "Failed to load delivery boys")));
   }, []);
 
   const handleAssign = async () => {
@@ -351,7 +353,7 @@ const OrderDetailsPage: React.FC = () => {
         transactionId: raw.payment.transaction_id ?? "",
         amount: parseFloat(raw.payment.amount) || 0,
         status: raw.payment.status ?? "",
-        paymentMethod: raw.payment.payment_method ?? "",
+        paymentMethod: normalizeDisplayPaymentMethod(raw.payment.payment_method),
         receiptNumber: raw.payment.receipt?.receipt_number ?? null,
         createdAt: raw.payment.created_at ?? "",
       } : null;
@@ -382,10 +384,8 @@ const OrderDetailsPage: React.FC = () => {
       setOrder(shaped);
       toast.show(`Assigned to ${shaped.deliveryAssignment?.delivery_boy_name || "delivery boy"}`, "success");
       setAssignMsg({ type: "ok", text: "Delivery boy assigned successfully." });
-    } catch (e: any) {
-      const d = e?.response?.data;
-      const msg = d?.detail || d?.error || d?.message || (typeof d === "string" ? d : null) || e?.message || "Assignment failed.";
-      setAssignMsg({ type: "err", text: msg });
+    } catch (e: unknown) {
+      setAssignMsg({ type: "err", text: getApiErrorMessage(e, "Assignment failed.") });
     } finally {
       setAssigning(false);
     }
@@ -600,7 +600,7 @@ const OrderDetailsPage: React.FC = () => {
                                 transactionId: raw.payment.transaction_id ?? "",
                                 amount: parseFloat(raw.payment.amount) || 0,
                                 status: raw.payment.status ?? "",
-                                paymentMethod: raw.payment.payment_method ?? "",
+                                paymentMethod: normalizeDisplayPaymentMethod(raw.payment.payment_method),
                                 receiptNumber: raw.payment.receipt?.receipt_number ?? null,
                                 createdAt: raw.payment.created_at ?? "",
                               }
@@ -1111,6 +1111,12 @@ const DeliverySlip = ({ order }: { order: Order }) => {
             {order.shippingAddress.streetAddress}, {order.shippingAddress.area}<br />
             {order.shippingAddress.city}, {order.shippingAddress.emirate}
           </p>
+          {order.deliveryNotes?.trim() && (
+            <div className="pt-1 border-t border-dashed border-black/30 mt-1">
+              <p className="text-[9px] font-black uppercase">Delivery Notes</p>
+              <p className="text-[10px] font-bold leading-snug whitespace-pre-wrap">{order.deliveryNotes.trim()}</p>
+            </div>
+          )}
         </div>
 
         {/* Items */}
@@ -1124,8 +1130,15 @@ const DeliverySlip = ({ order }: { order: Order }) => {
                   <td className="py-1 align-top">
                     <span className="font-black uppercase">{item.productName}</span>
                     {item.preparationSpecificationName && (
-                      <div className="italic font-bold text-[9px] mt-0.5">
-                        Prep: {item.preparationSpecificationName}
+                      <div className="text-[9px] mt-0.5 leading-snug">
+                        <span className="font-black uppercase">Prep spec:</span>{" "}
+                        <span className="font-bold">{item.preparationSpecificationName}</span>
+                      </div>
+                    )}
+                    {item.preparationInstructions?.trim() && (
+                      <div className="text-[9px] mt-0.5 leading-snug">
+                        <span className="font-black uppercase">Instructions:</span>{" "}
+                        <span className="font-bold italic whitespace-pre-wrap">{item.preparationInstructions.trim()}</span>
                       </div>
                     )}
                   </td>

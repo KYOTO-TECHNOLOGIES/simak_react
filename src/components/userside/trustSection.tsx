@@ -4,12 +4,14 @@ import { LayoutGrid } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useCategories } from "../../hooks/queries";
 import { type CategoryDto } from "../../features/admin/products/productApi";
+import { sortCategories } from "../../utils/categories";
 
 import logo from "../../assets/SIMAK FRESH FINAL LOGO-01.svg";
 
 const ShopByCategorySection: React.FC = () => {
   const { t, i18n } = useTranslation("home");
   const { data: categories = [], isLoading } = useCategories(i18n.language);
+  const sortedCategories = sortCategories(categories);
 
   return (
     <section className="relative overflow-hidden bg-[#f8f9fa] py-3 px-4 sm:px-6 lg:px-8">
@@ -29,17 +31,17 @@ const ShopByCategorySection: React.FC = () => {
 
         {/* Horizontal Scroll Carousel */}
         {isLoading ? (
-          <div className="flex gap-[6px] sm:gap-[10px] overflow-x-auto pb-3 scrollbar-hide w-full">
+          <div className="flex gap-[6px] sm:gap-[10px] lg:gap-5 xl:gap-6 overflow-x-auto pb-3 scrollbar-hide w-full lg:flex-nowrap">
             {[...Array(5)].map((_, i) => (
-              <div key={i} className="animate-pulse shrink-0 w-[72px] sm:w-[104px] md:w-[120px]">
+              <div key={i} className="animate-pulse shrink-0 w-[72px] sm:w-[104px] md:w-[120px] lg:flex-1 lg:min-w-[7.5rem] lg:w-auto lg:max-w-[280px]">
                 <div className="aspect-square bg-zinc-200 rounded-[22%]" />
                 <div className="mt-2 h-3 bg-zinc-200 rounded-full w-2/3 mx-auto" />
               </div>
             ))}
           </div>
-        ) : categories.length > 0 ? (
-          <div className="flex gap-[6px] sm:gap-[10px] overflow-x-auto pb-3 scrollbar-hide w-full">
-            {categories.map((cat, i) => (
+        ) : sortedCategories.length > 0 ? (
+          <div className="flex gap-[6px] sm:gap-[10px] lg:gap-5 xl:gap-6 overflow-x-auto pb-3 scrollbar-hide w-full lg:flex-nowrap">
+            {sortedCategories.map((cat, i) => (
               <CategoryCard key={cat.id} category={cat} index={i} />
             ))}
           </div>
@@ -73,7 +75,7 @@ const CategoryCard: React.FC<{ category: CategoryDto; index: number }> = ({
   return (
     <div
       ref={ref}
-      className={`shrink-0 w-[72px] sm:w-[104px] md:w-[120px] transition-all duration-500 ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
+      className={`shrink-0 w-[72px] sm:w-[104px] md:w-[120px] lg:flex-1 lg:min-w-[7.5rem] lg:w-auto lg:max-w-[280px] transition-all duration-500 ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
         }`}
       style={{ transitionDelay: `${index * 80}ms` }}
     >
@@ -95,7 +97,7 @@ const CategoryCard: React.FC<{ category: CategoryDto; index: number }> = ({
             </div>
           )}
         </div>
-        <h3 className="mt-1.5 text-[11px] sm:text-xs md:text-sm font-bold text-zinc-900 group-hover:text-cyan-600 transition-colors truncate px-1">
+        <h3 className="mt-1.5 text-[11px] sm:text-xs md:text-sm lg:text-base font-bold text-zinc-900 group-hover:text-cyan-600 transition-colors truncate px-1">
           {category.localizedName || category.name}
         </h3>
       </Link>

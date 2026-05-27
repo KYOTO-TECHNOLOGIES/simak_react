@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
     Plus, Trash2, Edit2, Save, X, Loader2, Send, FileText, Radio,
     Mail, Users, Globe, Image, Camera, Bell, CheckCheck, Check
@@ -10,6 +10,7 @@ import {
     type NotificationTemplatePayload,
     type BroadcastDto,
     type BroadcastPayload,
+    type AdminNotificationDto,
 } from "./adminNotificationApi";
 import { normalizeMediaUrl } from "../../../utils/media";
 
@@ -674,22 +675,67 @@ if (!document.getElementById("admin-notif-styles")) {
 /* ═══════════════════════════════════════════════
    System Alerts Section
    ═══════════════════════════════════════════════ */
-const SystemAlertsSection: React.FC = () => {
-    const [notifications, setNotifications] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [filter, setFilter] = useState<'all' | 'unread' | 'read'>('all');
+const SYSTEM_ALERTS_PAGE_SIZE = 20;
 
-    const fetch = useCallback(async () => {
-        setLoading(true);
+const SystemAlertsSection: React.FC = () => {
+    const [notifications, setNotifications] = useState<AdminNotificationDto[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const [hasMore, setHasMore] = useState(true);
+    const [filter, setFilter] = useState<'all' | 'unread' | 'read'>('all');
+    const offsetRef = useRef(0);
+    const sentinelRef = useRef<HTMLDivElement>(null);
+
+    const fetchPage = useCallback(async (reset: boolean) => {
+        const is_read = filter === "unread" ? false : filter === "read" ? true : null;
+
+        if (reset) {
+            offsetRef.current = 0;
+            setLoading(true);
+        } else {
+            setLoadingMore(true);
+        }
+
         try {
-            const is_read = filter === 'unread' ? false : filter === 'read' ? true : null;
-            const data = await adminNotificationApi.listPaged({ is_read, limit: 100 });
-            setNotifications(data.results);
-        } catch { /* empty */ }
-        finally { setLoading(false); }
+            const { results, next } = await adminNotificationApi.listPaged({
+                is_read,
+                limit: SYSTEM_ALERTS_PAGE_SIZE,
+                offset: offsetRef.current,
+            });
+
+            setNotifications((prev) => (reset ? results : [...prev, ...results]));
+            offsetRef.current += results.length;
+            setHasMore(Boolean(next) || results.length === SYSTEM_ALERTS_PAGE_SIZE);
+        } catch {
+            /* empty */
+        } finally {
+            setLoading(false);
+            setLoadingMore(false);
+        }
     }, [filter]);
 
-    useEffect(() => { fetch(); }, [fetch]);
+    useEffect(() => {
+        setNotifications([]);
+        setHasMore(true);
+        fetchPage(true);
+    }, [filter, fetchPage]);
+
+    useEffect(() => {
+        const el = sentinelRef.current;
+        if (!el || loading) return;
+
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                if (entry.isIntersecting && hasMore && !loadingMore && !loading) {
+                    fetchPage(false);
+                }
+            },
+            { root: null, rootMargin: "240px", threshold: 0 }
+        );
+
+        observer.observe(el);
+        return () => observer.disconnect();
+    }, [hasMore, loadingMore, loading, fetchPage]);
 
     const handleMarkAsRead = async (id: number) => {
         try {
@@ -782,6 +828,18 @@ const SystemAlertsSection: React.FC = () => {
                             </motion.div>
                         ))}
                     </AnimatePresence>
+                    <div ref={sentinelRef} className="h-4" aria-hidden />
+                    {loadingMore && (
+                        <div className="flex items-center justify-center gap-2 py-4 text-xs font-bold text-slate-400">
+                            <Loader2 size={14} className="animate-spin" />
+                            Loading more alerts…
+                        </div>
+                    )}
+                    {!hasMore && notifications.length > SYSTEM_ALERTS_PAGE_SIZE && (
+                        <p className="text-center text-[10px] font-bold uppercase tracking-widest text-slate-300 py-3">
+                            All alerts loaded
+                        </p>
+                    )}
                 </div>
             )}
         </div>

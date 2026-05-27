@@ -45,7 +45,9 @@ const CartPage: React.FC = () => {
     const inStockCartItems = cartItems.filter(isCartItemInStock);
     const outOfStockCartItems = cartItems.filter((item) => !isCartItemInStock(item));
     const inStockCartTotal = Number(
-        inStockCartItems.reduce((total, item) => total + item.finalPrice * item.quantity, 0).toFixed(2)
+        inStockCartItems
+            .reduce((total, item) => total + (item.subtotal ?? item.finalPrice * item.quantity), 0)
+            .toFixed(2)
     );
 
     // Always fetch fresh cart data when the cart page mounts and user is authenticated.
@@ -297,11 +299,17 @@ const CartPage: React.FC = () => {
                                             <div className="text-right">
                                                 {item.discountPrice ? (
                                                     <div className="flex flex-col items-end leading-none">
-                                                        <span className="text-[10px] text-stone-400 line-through">AED {(item.price * item.quantity).toFixed(2)}</span>
-                                                        <span className="text-lg font-black text-cyan-900">AED {(item.finalPrice * item.quantity).toFixed(2)}</span>
+                                                        <span className="text-[10px] text-stone-400 line-through">
+                                                            AED {((item.baseUnitPrice ?? item.price) * item.quantity).toFixed(2)}
+                                                        </span>
+                                                        <span className="text-lg font-black text-cyan-900">
+                                                            AED {(item.subtotal ?? item.finalPrice * item.quantity).toFixed(2)}
+                                                        </span>
                                                     </div>
                                                 ) : (
-                                                    <span className="text-lg font-black text-cyan-900">AED {(item.price * item.quantity).toFixed(2)}</span>
+                                                    <span className="text-lg font-black text-cyan-900">
+                                                        AED {(item.subtotal ?? item.finalPrice * item.quantity).toFixed(2)}
+                                                    </span>
                                                 )}
                                             </div>
                                         </div>

@@ -111,11 +111,9 @@ const PreparationSpecModal: React.FC<PreparationSpecModalProps> = ({
                                                     >
                                                         {spec.name}
                                                     </button>
-                                                    {parseFloat(spec.extra_price || "0") > 0 && (
-                                                        <span className="shrink-0 text-[10px] font-black px-2 py-0.5 bg-cyan-100 text-cyan-700 rounded-lg">
-                                                            +AED {parseFloat(spec.extra_price).toFixed(2)}
-                                                        </span>
-                                                    )}
+                                                    <span className="shrink-0 text-[10px] font-black px-2 py-0.5 bg-cyan-100 text-cyan-700 rounded-lg">
+                                                        +AED {parseFloat(spec.extra_price || "0").toFixed(2)}
+                                                    </span>
                                                 </div>
                                                 
                                                 {spec.description && (
