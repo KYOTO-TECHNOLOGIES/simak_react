@@ -436,7 +436,7 @@ const AddProduct: React.FC = () => {
                                 <option value="">— Select unit —</option>
                                 <option value="piece">Piece</option>
                                 <option value="kg">Kg</option>
-                                <option value="Gram">100g</option>
+                                <option value="100g">100g</option>
                             </select>
                         </Field>
 

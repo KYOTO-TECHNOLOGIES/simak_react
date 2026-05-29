@@ -66,7 +66,7 @@ function InfiniteScrollTrack<T,>({
       )}
       <div
         ref={trackScrollRef}
-        className={`flex ${gap} py-5 overflow-x-auto overflow-y-hidden touch-pan-y scrollbar-hide cursor-grab active:cursor-grabbing select-none`}
+        className={`flex ${gap} py-5 overflow-x-auto overflow-y-hidden scrollbar-hide cursor-grab active:cursor-grabbing select-none`}
         style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
       >
         {Array.from({ length: copies }, (_, copyIdx) =>

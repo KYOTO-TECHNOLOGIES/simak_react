@@ -1176,11 +1176,15 @@ const CheckoutPage: React.FC = () => {
                                     }
                                     try {
                                       setVerifyingAddressOtp(true);
-                                      await profileApi.verifyProfileOtp({
+                                      const res: any = await profileApi.verifyProfileOtp({
                                         otp_type: "phone",
                                         otp_code: addressPhoneOtp,
                                         phone_number: composedAddressPhone,
                                       } as any);
+                                      const access = res?.access || res?.accessToken || res?.token;
+                                      if (access) tokenManager.set(access);
+                                      const me = res?.user || (await profileApi.getMe());
+                                      dispatch(setUser(me));
                                       setAddressPhoneVerified(true);
                                       setAddressPhoneOtpStep("idle");
                                       setAddressPhoneOtp("");

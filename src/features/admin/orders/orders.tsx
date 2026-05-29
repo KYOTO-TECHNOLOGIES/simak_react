@@ -1121,7 +1121,7 @@ const OrderDetailsPanel = ({
                     <div>
                       <p className="text-xs font-bold">{item.productName || "Unknown Product"}</p>
                       <p className="text-[10px] text-[#A1A1AA]">
-                        Qty: {item.quantity || 0} · AED {(item.price || 0).toFixed(2)}/ea
+                        Qty: {item.quantity || 0} {item.productUnitDisplay === '100g' ? 'x 100g' : (item.productUnitDisplay || "")} · AED {(item.price || 0).toFixed(2)}/{item.productUnitDisplay || "ea"}
                       </p>
                     </div>
                   </div>

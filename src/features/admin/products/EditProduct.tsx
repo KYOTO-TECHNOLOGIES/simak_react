@@ -411,7 +411,7 @@ const EditProductForm: React.FC<EditProductFormProps> = ({ dto, productId }) => 
                                 <option value="">— Select unit —</option>
                                 <option value="piece">Piece</option>
                                 <option value="kg">Kg</option>
-                                <option value="g">100g</option>
+                                <option value="100g">100g</option>
                             </select>
                         </div>
                         <div className="space-y-2">

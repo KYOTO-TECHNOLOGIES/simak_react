@@ -423,8 +423,8 @@ const OrderDetailsPage: React.FC = () => {
 
   const handleViewPayment = useCallback(async () => {
     if (!order) return;
-    // 1. Try existing ID
-    if (order.payment?.id) {
+    // 1. Try existing ID (ensure it's a numeric DB ID, not a UUID transaction ID)
+    if (order.payment?.id && !isNaN(Number(order.payment.id))) {
       navigate(`/admin/payments/${order.payment.id}`);
       return;
     }
@@ -432,7 +432,7 @@ const OrderDetailsPage: React.FC = () => {
     try {
       const searchRes = await paymentsApi.list({ order_id: order.id, limit: 1 });
       if (searchRes.results.length > 0) {
-        navigate(`/admin/payments/${searchRes.results[0].payment_id}`);
+        navigate(`/admin/payments/${searchRes.results[0].payment_id || searchRes.results[0].id}`);
       } else {
         alert("Payment record not found for this order.");
       }
@@ -718,7 +718,7 @@ const OrderDetailsPage: React.FC = () => {
                             </button>
                           </p>
                           <p className="text-[11px] text-[#71717A] font-medium mt-0.5">
-                            Qty: <span className="text-black font-bold">{item.quantity || 0} {item.productUnitDisplay || ""}</span> · AED {(item.price || 0).toFixed(2)}/ea
+                            Qty: <span className="text-black font-bold">{item.quantity || 0} {item.productUnitDisplay === '100g' ? 'x 100g' : (item.productUnitDisplay || "")}</span> · AED {(item.price || 0).toFixed(2)}/{item.productUnitDisplay || "ea"}
                           </p>
                           {item.preparationSpecificationName && (
                             <div className="mt-2 p-2.5 bg-cyan-50/50 border border-cyan-100 rounded-xl max-w-sm">
@@ -1126,7 +1126,7 @@ const DeliverySlip = ({ order }: { order: Order }) => {
             <tbody>
               {order.items.map((item) => (
                 <tr key={item.id} className="border-b border-gray-200 last:border-0">
-                  <td className="py-1 align-top font-bold w-12">{item.quantity} {item.productUnitDisplay || ""}</td>
+                  <td className="py-1 align-top font-bold w-12">{item.quantity} {item.productUnitDisplay === '100g' ? 'x 100g' : (item.productUnitDisplay || "")}</td>
                   <td className="py-1 align-top">
                     <span className="font-black uppercase">{item.productName}</span>
                     {item.preparationSpecificationName && (

@@ -49,7 +49,7 @@ const ProductCard = memo(({
     const unitDisplay =
         product.unit === "kg" ? "Kg"
             : product.unit === "piece" ? "Pc"
-                : product.unit === "Gram" ? "100g"
+                : product.unit === "100g" ? "100g"
                     : "";
     const isOutOfStock = !product.is_available || product.stock === 0;
 

@@ -819,15 +819,7 @@ const OrderDetail: React.FC<{ orderId: number }> = ({ orderId }) => {
         URL.revokeObjectURL(url);
     };
 
-    const handleDownloadReceiptImage = async () => {
-        try {
-            const b = await ordersApi.receiptImage(order.id);
-            const num = payment?.receipt?.receipt_number || order.id;
-            downloadBlob(b, `receipt_${num}.png`);
-        } catch {
-            // silently ignore; backend already guards by status
-        }
-    };
+
 
     const handleDownloadReceiptPdf = async () => {
         try {
@@ -1174,12 +1166,7 @@ const OrderDetail: React.FC<{ orderId: number }> = ({ orderId }) => {
                                     </div>
                                     {canDownloadReceipt && (
                                         <div className="flex gap-2">
-                                            <button
-                                                onClick={handleDownloadReceiptImage}
-                                                className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-bold border border-slate-200 hover:bg-slate-50"
-                                            >
-                                                <ImageIcon size={16} /> {t("detail.downloadImage")}
-                                            </button>
+
                                             <button
                                                 onClick={handleDownloadReceiptPdf}
                                                 className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-bold border border-slate-200 hover:bg-slate-50"

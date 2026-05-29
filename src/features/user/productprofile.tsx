@@ -199,8 +199,8 @@ const ProductProfile: React.FC = () => {
     ? t("units.kg")
     : product.unit === "piece"
       ? t("units.piece")
-      : product.unit === "Gram"
-        ? t("units.gram100")
+      : product.unit === "100g"
+        ? t("units.100g")
         : t("details.perUnitFallback");
 
   const availableLocations = extractProductLocationValues(

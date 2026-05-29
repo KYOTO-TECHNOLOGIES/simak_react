@@ -97,6 +97,6 @@
   "units": {
     "kg": "Kg",
     "piece": "Piece",
-    "gram100": "100g"
+    "100g": "100g"
   }
 }

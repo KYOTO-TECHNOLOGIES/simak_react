@@ -160,7 +160,7 @@ const ProductDetailsPage: React.FC = () => {
                     <div>
                       <p className="text-[10px] font-bold text-[#A1A1AA] uppercase tracking-widest">Unit</p>
                       <p className="text-sm font-bold">
-                        {product.unit === "kg" ? "Kg" : product.unit === "piece" ? "Piece" : product.unit === "Gram" ? "100g" : (product.unit || "—")}
+                        {product.unit === "kg" ? "Kg" : product.unit === "piece" ? "Piece" : product.unit === "100g" ? "100g" : (product.unit || "—")}
                       </p>
                     </div>
                     {product.availableEmirates && product.availableEmirates.length > 0 && (
