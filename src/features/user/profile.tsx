@@ -2160,7 +2160,7 @@ const ReferralTab: React.FC<ReferralTabProps> = ({ user }) => {
             try {
                 await navigator.share({
                     title: "Simak Fresh — Refer & Earn!",
-                    text: `Use my referral code ${referralCode} and get 20% OFF on your first order at Simak Fresh!`,
+                    text: `Use my referral code ${referralCode} and save up to AED 20 on your first order at Simak Fresh!`,
                     url: referralLink,
                 });
             } catch {
@@ -2188,8 +2188,8 @@ const ReferralTab: React.FC<ReferralTabProps> = ({ user }) => {
         },
         {
             num: "03",
-            title: t("profile.referrals.steps.three.title", { defaultValue: "Both Get 20% OFF" }),
-            desc: t("profile.referrals.steps.three.desc", { defaultValue: "Your friend gets 20% OFF instantly! Once the order is delivered, you also receive a 20% discount coupon." }),
+            title: t("profile.referrals.steps.three.title", { defaultValue: "Up to AED 20" }),
+            desc: t("profile.referrals.steps.three.desc", { defaultValue: "Your friend gets a discount instantly (up to AED 20)! Once the order is delivered, you also receive a coupon worth up to AED 20." }),
             img: referralRewardImg,
             gradient: "from-amber-400 to-orange-400",
         },
@@ -2214,7 +2214,7 @@ const ReferralTab: React.FC<ReferralTabProps> = ({ user }) => {
                     </span>
                 </h2>
                 <p className="text-xs md:text-sm text-slate-500 mt-3 max-w-sm mx-auto leading-relaxed">
-                    {t("profile.referrals.description", { defaultValue: "When you refer your friend to Simak Fresh, you get 20% OFF on your next order and so does your friend. Then you both eat healthy ever after!" })}
+                    {t("profile.referrals.description", { defaultValue: "Refer a friend to Simak Fresh — you both enjoy savings up to AED 20 on your orders. Then you both eat healthy ever after!" })}
                 </p>
             </div>
 

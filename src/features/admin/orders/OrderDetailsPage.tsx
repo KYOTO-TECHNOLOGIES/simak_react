@@ -432,7 +432,7 @@ const OrderDetailsPage: React.FC = () => {
     try {
       const searchRes = await paymentsApi.list({ order_id: order.id, limit: 1 });
       if (searchRes.results.length > 0) {
-        navigate(`/admin/payments/${searchRes.results[0].payment_id || searchRes.results[0].id}`);
+        navigate(`/admin/payments/${searchRes.results[0].payment_id}`);
       } else {
         alert("Payment record not found for this order.");
       }

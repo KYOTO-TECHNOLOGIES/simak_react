@@ -114,7 +114,7 @@
             "combinedTitle": "Referral & Coupons",
             "title": "Friends Who Refer",
             "subtitle": "Stay Friends Forever",
-            "description": "When you refer your friend to Simak Fresh, you get 20% OFF on your next order and so does your friend. Then you both eat healthy ever after!",
+            "description": "Refer a friend to Simak Fresh — you both enjoy savings up to AED 20 on your orders. Then you both eat healthy ever after!",
             "codeLabel": "Your Referral Code",
             "copyCode": "Copy code",
             "startReferring": "Start Referring, Start Earning!",
@@ -131,8 +131,8 @@
                     "desc": "Your friend enters your referral code at checkout on their first order."
                 },
                 "three": {
-                    "title": "Both Get 20% OFF (up to AED 20)",
-                    "desc": "Your friend gets 20% OFF instantly (up to AED 20)! Once the order is delivered, you also receive a 20% discount coupon (up to AED 20)."
+                    "title": "Up to AED 20",
+                    "desc": "Your friend gets a discount instantly (up to AED 20)! Once the order is delivered, you also receive a coupon worth up to AED 20."
                 }
             },
             "copyLink": "Copy Link",

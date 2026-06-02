@@ -39,6 +39,7 @@ function mapOrderItemDto(dto: OrderItemDto): OrderItem {
         quantity: dto.quantity,
         price: parseFloat(dto.price) || 0,
         subtotal: parseFloat(dto.subtotal) || 0,
+        productUnitDisplay: dto.unit_name ?? dto.product_unit_display ?? null,
     };
 }
 

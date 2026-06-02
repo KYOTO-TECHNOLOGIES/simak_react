@@ -87,11 +87,11 @@ const Footer: React.FC = () => {
     };
 
     const socials = [
-        { icon: <Instagram size={18} />, href: "#", label: "Instagram" },
-        { icon: <Facebook size={18} />, href: "#", label: "Facebook" },
+        { icon: <Instagram size={18} />, href: "https://www.instagram.com/simakfresh.ae?igsh=N2Q1bGx3MnJuNnNm", label: "Instagram" },
+        { icon: <Facebook size={18} />, href: "https://www.facebook.com/share/17QH8QPSrF/", label: "Facebook" },
         { icon: <Twitter size={18} />, href: "#", label: "Twitter" },
-        { icon: <FaTiktok size={18} />, href: "#", label: "TikTok" },
-        { icon: <FaSnapchat size={18} />, href: "#", label: "Snapchat" },
+        { icon: <FaTiktok size={18} />, href: "https://www.tiktok.com/@simakfresh", label: "TikTok" },
+        { icon: <FaSnapchat size={18} />, href: "https://www.snapchat.com/add/simakfresh?share_id=7L3RKPWGMbQ&locale=en-GB", label: "Snapchat" },
     ];
 
     return (

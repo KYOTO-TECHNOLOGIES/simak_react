@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
     AlertCircle, ArrowLeft, Package,
     Clock, CheckCircle, XCircle, Truck,
-    ChevronRight, MapPin, CreditCard, FileText, Star, X, Loader2, Image as ImageIcon, Download
+    ChevronRight, MapPin, CreditCard, FileText, Star, X, Loader2, Download
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { ordersApi, type OrderDto, type OrderItemDto } from "../admin/orders/ordersApi";

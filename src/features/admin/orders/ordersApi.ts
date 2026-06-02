@@ -15,6 +15,8 @@ export interface OrderItemDto {
     total_with_preparation?: string;
     base_unit_price?: string;
     unit_price?: string;
+    unit_name?: string | null;
+    product_unit_display?: string | null;
 }
 
 /* ── Shipping Address DTO ── */

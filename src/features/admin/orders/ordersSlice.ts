@@ -22,6 +22,7 @@ export interface OrderItem {
     quantity: number;
     price: number;
     subtotal: number;
+    productUnitDisplay?: string | null;
 }
 
 export interface ShippingAddress {
