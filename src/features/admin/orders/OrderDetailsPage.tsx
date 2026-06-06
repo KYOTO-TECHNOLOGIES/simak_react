@@ -11,6 +11,8 @@ import type { DeliveryBoyUser, DeliveryAssignment, DeliveryCancelRequest } from 
 import { useToast } from "../../../components/ui/Toast";
 import { normalizeDisplayPaymentMethod } from "../../../utils/payment";
 import { getApiErrorMessage } from "../../../utils/apiError";
+import boardHeaderImg from "../../../assets/BOARD-1.png";
+import { downloadDeliverySlipPdf } from "../../../utils/deliverySlipPdf";
 
 type OrderItem = {
   id: number;
@@ -187,7 +189,9 @@ const OrderDetailsPage: React.FC = () => {
   const [isStatusOpen, setIsStatusOpen] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<OrderStatus | "">("");
   const [statusNotes, setStatusNotes] = useState("");
-  const [isUpdating, setIsUpdating] = useState(false); const [deliveryBoys, setDeliveryBoys] = useState<DeliveryBoyUser[]>([]);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [downloadingSlipPdf, setDownloadingSlipPdf] = useState(false);
+  const [deliveryBoys, setDeliveryBoys] = useState<DeliveryBoyUser[]>([]);
   const [deliveryBoysError, setDeliveryBoysError] = useState<string | null>(null);
   const [selectedBoyId, setSelectedBoyId] = useState<number | "">("");
   const [assigning, setAssigning] = useState(false);
@@ -421,6 +425,20 @@ const OrderDetailsPage: React.FC = () => {
     downloadBlob(blob, `delivery_details_${order.orderNumber}.pdf`);
   }, [order]);
 
+  const handleDownloadSlipPdf = useCallback(async () => {
+    if (!order) return;
+    setDownloadingSlipPdf(true);
+    try {
+      await downloadDeliverySlipPdf(order, `slip_${order.orderNumber}.pdf`);
+      toast.show("Delivery slip PDF downloaded", "success");
+    } catch (e) {
+      console.error("Failed to generate slip PDF:", e);
+      toast.show("Failed to download delivery slip PDF", "error");
+    } finally {
+      setDownloadingSlipPdf(false);
+    }
+  }, [order, toast]);
+
   const handleViewPayment = useCallback(async () => {
     if (!order) return;
     // 1. Try existing ID (ensure it's a numeric DB ID, not a UUID transaction ID)
@@ -473,11 +491,13 @@ const OrderDetailsPage: React.FC = () => {
               <div className="flex items-center gap-2">
                 <OrderStatusBadge status={order.status} />
                 <button
-                  onClick={() => window.print()}
-                  className="p-2 bg-white border border-[#EEEEEE] rounded-lg text-xs font-bold hover:bg-gray-50 flex items-center gap-2 shadow-sm"
-                  title="Print Delivery Slip"
+                  onClick={handleDownloadSlipPdf}
+                  disabled={downloadingSlipPdf}
+                  className="p-2 bg-white border border-[#EEEEEE] rounded-lg text-xs font-bold hover:bg-gray-50 flex items-center gap-2 shadow-sm disabled:opacity-50"
+                  title="Download delivery slip PDF (50cm × 25cm)"
                 >
-                  <Package size={14} /> <span className="hidden sm:inline">Print Slip</span>
+                  {downloadingSlipPdf ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+                  <span className="hidden sm:inline">{downloadingSlipPdf ? "Generating…" : "Slip PDF"}</span>
                 </button>
                 <button
                   onClick={handleDownloadAdminReceipt}
@@ -1093,76 +1113,56 @@ const OrderDetailsPage: React.FC = () => {
 
 /* ── DELIVERY SLIP COMPONENT (PRINT ONLY) ── */
 const DeliverySlip = ({ order }: { order: Order }) => {
+  const orderDate = new Date(order.createdAt).toLocaleString("en-GB", {
+    day: "numeric",
+    month: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+
+  const addressParts = [
+    order.shippingAddress.streetAddress,
+    order.shippingAddress.area,
+    order.shippingAddress.city,
+    order.shippingAddress.emirate,
+  ].filter(Boolean);
+
+  const formatItemQty = (item: OrderItem) => {
+    const unit = item.productUnitDisplay === "100g" ? "x 100g" : (item.productUnitDisplay || "");
+    return `${item.quantity}${unit ? ` ${unit}` : ""}`.trim();
+  };
+
   return (
-    <div className="hidden print:block w-[80mm] p-4 bg-white text-black font-sans leading-tight">
-      <div className="border-2 border-black p-2 space-y-4">
-        {/* Header */}
-        <div className="text-center border-b-2 border-black pb-2">
-          <h1 className="text-xl font-black">{order.orderNumber}</h1>
-          <p className="text-[10px] font-bold uppercase tracking-widest">{new Date(order.createdAt).toLocaleDateString()}</p>
-        </div>
+    <div className="delivery-slip hidden print:block">
+      <div className="delivery-slip__header-wrap">
+        <img src={boardHeaderImg} alt="SIMAK FRESH" className="delivery-slip__header" />
+      </div>
 
-        {/* Customer Info */}
-        <div className="space-y-1">
-          <p className="text-[10px] font-black uppercase border-b border-black">Customer</p>
-          <p className="text-sm font-black uppercase">{order.shippingAddress.fullName}</p>
-          <p className="text-xs font-bold">{order.shippingAddress.phoneNumber}</p>
-          <p className="text-[10px] leading-tight">
-            {order.shippingAddress.streetAddress}, {order.shippingAddress.area}<br />
-            {order.shippingAddress.city}, {order.shippingAddress.emirate}
-          </p>
-          {order.deliveryNotes?.trim() && (
-            <div className="pt-1 border-t border-dashed border-black/30 mt-1">
-              <p className="text-[9px] font-black uppercase">Delivery Notes</p>
-              <p className="text-[10px] font-bold leading-snug whitespace-pre-wrap">{order.deliveryNotes.trim()}</p>
-            </div>
-          )}
-        </div>
+      <div className="delivery-slip__meta">
+        <span className="delivery-slip__order-id">{order.orderNumber}</span>
+        <span className="delivery-slip__date">{orderDate}</span>
+      </div>
 
-        {/* Items */}
-        <div className="space-y-1">
-          <p className="text-[10px] font-black uppercase border-b border-black">Items</p>
-          <table className="w-full text-[10px]">
-            <tbody>
-              {order.items.map((item) => (
-                <tr key={item.id} className="border-b border-gray-200 last:border-0">
-                  <td className="py-1 align-top font-bold w-12">{item.quantity} {item.productUnitDisplay === '100g' ? 'x 100g' : (item.productUnitDisplay || "")}</td>
-                  <td className="py-1 align-top">
-                    <span className="font-black uppercase">{item.productName}</span>
-                    {item.preparationSpecificationName && (
-                      <div className="text-[9px] mt-0.5 leading-snug">
-                        <span className="font-black uppercase">Prep spec:</span>{" "}
-                        <span className="font-bold">{item.preparationSpecificationName}</span>
-                      </div>
-                    )}
-                    {item.preparationInstructions?.trim() && (
-                      <div className="text-[9px] mt-0.5 leading-snug">
-                        <span className="font-black uppercase">Instructions:</span>{" "}
-                        <span className="font-bold italic whitespace-pre-wrap">{item.preparationInstructions.trim()}</span>
-                      </div>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+      <p className="delivery-slip__customer">{order.shippingAddress.fullName}</p>
 
-        {/* Footer */}
-        <div className="pt-2 border-t-2 border-black flex justify-between items-end">
-          <div>
-            <p className="text-[9px] font-black uppercase">Payment</p>
-            <p className="text-xs font-black uppercase">{order.paymentMethod} - {order.paymentStatus}</p>
+      {addressParts.length > 0 && (
+        <p className="delivery-slip__address">{addressParts.join(", ")}</p>
+      )}
+
+      <p className="delivery-slip__mobile">{order.shippingAddress.phoneNumber}</p>
+
+      <div className="delivery-slip__items">
+        <div className="delivery-slip__items-head">
+          <span>Item</span>
+          <span>Qty</span>
+        </div>
+        {order.items.map((item) => (
+          <div key={item.id} className="delivery-slip__item-row">
+            <span className="delivery-slip__item-name">{item.productName}</span>
+            <span className="delivery-slip__item-qty">{formatItemQty(item)}</span>
           </div>
-          <div className="text-right">
-            <p className="text-[10px] font-black uppercase">Total</p>
-            <p className="text-sm font-black">AED {order.total.toFixed(2)}</p>
-          </div>
-        </div>
-
-        <div className="text-center pt-4 opacity-50">
-          <p className="text-[8px] font-bold uppercase">Thank you for shopping with us!</p>
-        </div>
+        ))}
       </div>
     </div>
   );
@@ -1172,18 +1172,143 @@ const DeliverySlip = ({ order }: { order: Order }) => {
 const PrintStyles = () => (
   <style dangerouslySetInnerHTML={{ __html: `
     @media print {
+      html, body {
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 50cm;
+        height: 25cm;
+      }
       body * { visibility: hidden; }
       .print-area, .print-area * { visibility: visible; }
-      .print-area { 
-        position: absolute; 
-        left: 0; 
-        top: 0; 
-        width: 80mm;
+      .print-area {
+        position: fixed;
+        left: 2.5cm;
+        top: 0;
+        width: 45cm;
+        height: 25cm;
+        margin: 0;
+        padding: 0;
+        background: #fff;
+      }
+      .delivery-slip {
+        width: 45cm;
+        height: 25cm;
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0 0.4cm 0.35cm;
+        background: #fff;
+        color: #000;
+        font-family: Arial, Helvetica, sans-serif;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+      .delivery-slip__header-wrap {
+        width: 100%;
+        height: 10cm;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0.5cm 0 0.35cm;
+        padding: 0;
+        overflow: hidden;
+      }
+      .delivery-slip__header {
+        width: 100%;
         height: auto;
+        max-height: 100%;
+        object-fit: contain;
+        object-position: center center;
+        display: block;
+        margin: 0;
+        padding: 0;
+      }
+      .delivery-slip__meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 0.5cm;
+        font-size: 20pt;
+        font-weight: 700;
+        margin-bottom: 0.35cm;
+        padding-bottom: 0.25cm;
+        border-bottom: 2px solid #000;
+      }
+      .delivery-slip__order-id {
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .delivery-slip__date {
+        text-align: right;
+        white-space: nowrap;
+      }
+      .delivery-slip__customer {
+        font-size: 24pt;
+        font-weight: 800;
+        text-transform: uppercase;
+        margin: 0 0 0.25cm;
+        line-height: 1.15;
+      }
+      .delivery-slip__address {
+        font-size: 18pt;
+        font-weight: 600;
+        margin: 0 0 0.25cm;
+        line-height: 1.25;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+      .delivery-slip__mobile {
+        font-size: 20pt;
+        font-weight: 700;
+        margin: 0 0 0.4cm;
+        padding-bottom: 0.3cm;
+        border-bottom: 2px solid #000;
+      }
+      .delivery-slip__items {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.12cm;
+      }
+      .delivery-slip__items-head,
+      .delivery-slip__item-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 0.5cm;
+        font-size: 18pt;
+      }
+      .delivery-slip__items-head {
+        font-size: 19pt;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        padding-bottom: 0.18cm;
+        border-bottom: 2px solid #ccc;
+      }
+      .delivery-slip__item-name {
+        flex: 1;
+        font-weight: 700;
+        text-transform: uppercase;
+        line-height: 1.2;
+      }
+      .delivery-slip__item-qty {
+        font-weight: 800;
+        font-size: 19pt;
+        white-space: nowrap;
+        min-width: 3cm;
+        text-align: right;
       }
       @page {
-        size: 80mm auto;
+        size: 50cm 25cm;
         margin: 0;
+      }
+      @page :first {
+        margin-top: 0;
       }
     }
   `}} />
