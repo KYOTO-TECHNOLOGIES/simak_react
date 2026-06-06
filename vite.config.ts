@@ -1,6 +1,10 @@
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react-swc'
 import tailwindcss from '@tailwindcss/vite'
+
+const dirname = path.dirname(fileURLToPath(import.meta.url))
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
@@ -10,6 +14,15 @@ export default defineConfig(({ mode }) => {
   
   return {
     plugins: [react(), tailwindcss()],
+    resolve: {
+      alias: {
+        // jspdf optionally imports canvg for SVG; slip PDF only uses images + text
+        canvg: path.resolve(dirname, 'src/utils/canvg-stub.ts'),
+      },
+    },
+    optimizeDeps: {
+      exclude: ['jspdf'],
+    },
     server: {
       host: true,
       port: 3000,
