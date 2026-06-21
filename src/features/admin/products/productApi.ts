@@ -130,6 +130,15 @@ export interface CategoryDto {
   product_count?: number;
 }
 
+export interface ProductUnitDto {
+  id: number;
+  name: string;
+  is_active?: boolean;
+  sort_order?: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export const productsApi = {
   list: async (
     params?: ProductsQuery
@@ -208,6 +217,18 @@ export const productsApi = {
 
   deleteCategory: async (id: number): Promise<void> => {
     await api.delete(`/products/categories/${id}/`);
+  },
+
+  /* ── Product Units ── */
+  listUnits: async (): Promise<ProductUnitDto[]> => {
+    const res = await api.get<any>("/products/units/");
+    const data = res.data;
+    return Array.isArray(data) ? data : (data?.results ?? []);
+  },
+
+  createUnit: async (payload: { name: string }): Promise<ProductUnitDto> => {
+    const res = await api.post<ProductUnitDto>("/products/units/", payload);
+    return res.data;
   },
 
   /* ── Delivery Tiers ── */
