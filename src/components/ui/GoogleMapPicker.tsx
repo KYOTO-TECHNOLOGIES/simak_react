@@ -2,6 +2,12 @@ import { Loader } from "@googlemaps/js-api-loader";
 import { useEffect, useRef, useState, useCallback } from "react";
 import { MapPin, Navigation, Loader2 } from "lucide-react";
 
+declare global {
+  interface Window {
+    google: any;
+  }
+}
+
 const GOOGLE_MAPS_API_KEY = "AIzaSyCpMhqetQskMUsPFiHNNka6K1NsZutU8KM";
 const MAP_ID = "DEMO_MAP_ID";
 
@@ -251,7 +257,10 @@ export default function GoogleMapPicker({
   }, [defaultLat, defaultLng, reverseGeocode, onSelect]);
 
   useEffect(() => {
-    loader.load().then(initMap).catch(e => console.error("loader.load error:", e));
+    loader
+      .load()
+      .then(initMap)
+      .catch((e: unknown) => console.error("loader.load error:", e));
   }, [initMap]);
 
   // Handle container resizing (e.g. during animations)

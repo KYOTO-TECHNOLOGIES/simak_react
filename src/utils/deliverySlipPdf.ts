@@ -200,12 +200,12 @@ function renderSlipPage(
   const addressTextW = addressBoxW - addressPad * 2;
   const customerName = order.shippingAddress.fullName || "Customer";
   const phoneNumber = order.shippingAddress.phoneNumber || "-";
-  const nameLines = doc.splitTextToSize(customerName.toUpperCase(), addressTextW);
+  const customerNameLines = doc.splitTextToSize(customerName.toUpperCase(), addressTextW);
   const addressLines = doc.splitTextToSize(addressParts.join(", "), addressTextW);
   const phoneLines = doc.splitTextToSize(phoneNumber, addressTextW);
   const addressBoxH =
     addressPad +
-    nameLines.length * 10 +
+    customerNameLines.length * 10 +
     (addressLines.length > 0 ? addressLines.length * 7 + 2 : 0) +
     phoneLines.length * 8 +
     addressPad;
@@ -215,8 +215,8 @@ function renderSlipPage(
   let textY = addressBoxY + addressPad + 8;
   doc.setFont("helvetica", "bold");
   doc.setFontSize(21);
-  doc.text(nameLines, addressBoxX + addressPad, textY);
-  textY += nameLines.length * 10;
+  doc.text(customerNameLines, addressBoxX + addressPad, textY);
+  textY += customerNameLines.length * 10;
 
   if (addressLines.length > 0) {
     doc.setFont("helvetica", "normal");
@@ -249,15 +249,15 @@ function renderSlipPage(
   };
   const qty = formatItemQty(slipItem);
   const name = (slipItem.productName || "Item").toUpperCase();
-  const nameLines = doc.splitTextToSize(name, itemColW - 10);
-  const rowH = Math.max(16, nameLines.length * 7 + 8);
+  const itemNameLines = doc.splitTextToSize(name, itemColW - 10);
+  const rowH = Math.max(16, itemNameLines.length * 7 + 8);
 
   drawBox(doc, left, y, contentWidth, rowH, 0.35);
   doc.line(left + itemColW, y, left + itemColW, y + rowH);
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(16);
-  doc.text(nameLines, left + 4, y + 8);
+  doc.text(itemNameLines, left + 4, y + 8);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(15);
   doc.text(qty, right - 4, y + rowH / 2 + 2, { align: "right" });

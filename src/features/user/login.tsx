@@ -13,7 +13,7 @@ import {
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { useTranslation, Trans } from "react-i18next";
-import { GoogleLogin } from "@react-oauth/google";
+import { GoogleLogin, type CredentialResponse } from "@react-oauth/google";
 import useLanguageToggle from "../../hooks/useLanguageToggle";
 
 import type { AuthMethod } from "../../types/types";
@@ -509,7 +509,7 @@ const Login: React.FC = () => {
 
            <div className="mt-4">
   <GoogleLogin
-    onSuccess={(credentialResponse) => {
+    onSuccess={(credentialResponse: CredentialResponse) => {
       if (credentialResponse.credential) {
         dispatch(googleLogin({
           credential: credentialResponse.credential,
