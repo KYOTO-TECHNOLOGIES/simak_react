@@ -18,6 +18,7 @@ interface ProductFormValues extends Omit<Partial<ProductDto>, 'image'> {
     image?: string | FileList | null;
     new_gallery_images?: FileList;
     new_videos?: FileList;
+    sortorder?: number;
     unit_id?: string;
 }
 
@@ -175,6 +176,7 @@ const EditProductForm: React.FC<EditProductFormProps> = ({ dto, productId }) => 
                 sku: dto.sku || "",
                 is_available: dto.is_available,
                 expected_delivery_time: dto.expected_delivery_time || "",
+                sortorder: (dto as any)?.sortorder ?? 1,
             });
             setExistingImages(dto.images || []);
             setExistingVideos(dto.videos || []);
@@ -213,6 +215,7 @@ const EditProductForm: React.FC<EditProductFormProps> = ({ dto, productId }) => 
             if (data.unit_id) formData.append("unit_id", String(data.unit_id));
             if (data.sku) formData.append("sku", data.sku);
             if (data.expected_delivery_time) formData.append("expected_delivery_time", data.expected_delivery_time);
+            if (Number.isFinite(data.sortorder)) formData.append("sortorder", String(data.sortorder));
             formData.append("available_emirates", JSON.stringify(selectedLocations));
 
             // Main image
@@ -537,6 +540,27 @@ const EditProductForm: React.FC<EditProductFormProps> = ({ dto, productId }) => 
                                 {...register("sku")}
                                 className="w-full px-4 py-3 bg-[#FAFAFA] border-none rounded-xl text-sm font-medium focus:ring-2 focus:ring-black outline-none transition-all"
                             />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-xs font-bold uppercase text-[#A1A1AA]">Sort Order</label>
+                            <input
+                                type="number"
+                                min={1}
+                                step={1}
+                                {...register("sortorder", {
+                                    valueAsNumber: true,
+                                    min: { value: 1, message: "Sort order must be at least 1" },
+                                    validate: (v) =>
+                                        v == null || Number.isInteger(v) || "Sort order must be a whole number",
+                                })}
+                                className={`w-full px-4 py-3 bg-[#FAFAFA] border-2 rounded-xl text-sm font-medium focus:ring-2 outline-none transition-all ${errors.sortorder ? "border-rose-200 focus:border-rose-400 focus:ring-rose-100" : "border-transparent focus:border-black focus:ring-black/5"}`}
+                                placeholder="1"
+                            />
+                            {errors.sortorder && (
+                                <p className="text-rose-500 text-[10px] font-bold">
+                                    {String(errors.sortorder.message)}
+                                </p>
+                            )}
                         </div>
                     </div>
                     <div className="flex items-center gap-3 pt-2">

@@ -85,6 +85,7 @@ export interface ProductDto {
   is_available: boolean;
   image: string | null;
   sku: string;
+  sortorder?: number;
   expected_delivery_time: string | null;
   images: ProductImageDto[];
   videos: ProductVideoDto[];
