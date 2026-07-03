@@ -18,7 +18,7 @@ import {
     selectProductsStatus,
     selectProductsError,
 } from "./productsSlice";
-import { productsApi, type CategoryDto } from "./productApi";
+import { productsApi, type CategoryDto, type ProductUnitDto } from "./productApi";
 import ProductLocationsField from "./ProductLocationsField";
 import DeliveryTiersManager from "./DeliveryTiersManager";
 import DiscountTiersManager from "./DiscountTiersManager";
@@ -33,7 +33,7 @@ interface ProductFormData {
     slug: string;
     description: string;
     category: string;
-    unit: string;
+    unit_id: string;
     price: string;
     discount_price: string;
     stock: number;
@@ -80,6 +80,12 @@ const AddProduct: React.FC = () => {
     /* ── Categories from API ── */
     const [categories, setCategories] = useState<CategoryDto[]>([]);
     const [catsLoading, setCatsLoading] = useState(false);
+    const [units, setUnits] = useState<ProductUnitDto[]>([]);
+    const [unitsLoading, setUnitsLoading] = useState(false);
+    const [showAddUnit, setShowAddUnit] = useState(false);
+    const [newUnitName, setNewUnitName] = useState("");
+    const [creatingUnit, setCreatingUnit] = useState(false);
+    const [unitError, setUnitError] = useState<string | null>(null);
 
     useEffect(() => {
         setCatsLoading(true);
@@ -89,10 +95,19 @@ const AddProduct: React.FC = () => {
             .finally(() => setCatsLoading(false));
     }, []);
 
+    useEffect(() => {
+        setUnitsLoading(true);
+        productsApi.listUnits()
+            .then((data) => setUnits(data))
+            .catch(() => setUnitError("Failed to load product units."))
+            .finally(() => setUnitsLoading(false));
+    }, []);
+
     /* ── react-hook-form ── */
     const {
         register,
         handleSubmit,
+        setValue,
         watch,
         formState: { errors },
     } = useForm<ProductFormData>({
@@ -100,7 +115,7 @@ const AddProduct: React.FC = () => {
             is_available: true,
             stock: 0,
             slug: "",
-            unit: "",
+            unit_id: "",
             expected_delivery_time: "",
             discount_price: "",
             sku: "",
@@ -197,6 +212,33 @@ const AddProduct: React.FC = () => {
         setMainPreview(f ? URL.createObjectURL(f) : null);
     };
 
+    const handleCreateUnit = async () => {
+        const name = newUnitName.trim();
+        if (!name) {
+            setUnitError("Unit name is required.");
+            return;
+        }
+
+        setCreatingUnit(true);
+        setUnitError(null);
+        try {
+            const created = await productsApi.createUnit({ name });
+            setUnits((prev) => [...prev, created]);
+            setValue("unit_id", String(created.id), { shouldValidate: true });
+            setNewUnitName("");
+            setShowAddUnit(false);
+        } catch (err: any) {
+            const message =
+                err?.response?.data?.detail ||
+                err?.response?.data?.name?.[0] ||
+                err?.message ||
+                "Failed to create unit.";
+            setUnitError(message);
+        } finally {
+            setCreatingUnit(false);
+        }
+    };
+
     /* ── SUBMIT ── */
     const onSubmit = (data: ProductFormData) => {
         const fd = new FormData();
@@ -205,7 +247,7 @@ const AddProduct: React.FC = () => {
         if (data.slug) fd.append("slug", data.slug);
         fd.append("description", data.description);
         fd.append("category", String(data.category));
-        if (data.unit) fd.append("unit", data.unit);
+        if (data.unit_id) fd.append("unit_id", data.unit_id);
         fd.append("price", data.price);
         if (data.discount_price) fd.append("discount_price", data.discount_price);
         fd.append("stock", String(data.stock));
@@ -431,16 +473,71 @@ const AddProduct: React.FC = () => {
                             </select>
                         </Field>
 
-                        <Field label="Unit" error={errors.unit?.message}>
-                            <select
-                                {...register("unit", { required: "Unit is required" })}
-                                className={inputClass}
-                            >
-                                <option value="">— Select unit —</option>
-                                <option value="piece">Piece</option>
-                                <option value="kg">Kg</option>
-                                <option value="100g">100g</option>
-                            </select>
+                        <Field label="Unit" error={errors.unit_id?.message || unitError || undefined}>
+                            <div className="space-y-3">
+                                <select
+                                    {...register("unit_id", { required: "Unit is required" })}
+                                    disabled={unitsLoading}
+                                    className={inputClass}
+                                >
+                                    <option value="">
+                                        {unitsLoading ? "Loading units..." : "— Select unit —"}
+                                    </option>
+                                    {units.map((unit) => (
+                                        <option key={unit.id} value={String(unit.id)}>
+                                            {unit.name}
+                                        </option>
+                                    ))}
+                                </select>
+                                <div className="flex flex-wrap items-center gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setShowAddUnit((prev) => !prev);
+                                            setUnitError(null);
+                                        }}
+                                        className="inline-flex items-center gap-2 rounded-xl border border-zinc-200 px-4 py-2 text-sm font-semibold text-zinc-700 hover:bg-zinc-50 transition-colors"
+                                    >
+                                        <Plus size={16} />
+                                        Add unit
+                                    </button>
+                                    <span className="text-xs text-zinc-500">
+                                        Units are loaded from the database.
+                                    </span>
+                                </div>
+                                {showAddUnit && (
+                                    <div className="flex flex-col gap-3 rounded-2xl border border-zinc-200 bg-zinc-50/70 p-4 sm:flex-row">
+                                        <input
+                                            value={newUnitName}
+                                            onChange={(e) => setNewUnitName(e.target.value)}
+                                            className={inputClass}
+                                            placeholder="e.g. box, tray, 500g"
+                                        />
+                                        <div className="flex gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={handleCreateUnit}
+                                                disabled={creatingUnit}
+                                                className="inline-flex items-center justify-center gap-2 rounded-xl bg-black px-4 py-3 text-sm font-bold text-white disabled:opacity-50"
+                                            >
+                                                {creatingUnit ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
+                                                Save unit
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setShowAddUnit(false);
+                                                    setNewUnitName("");
+                                                    setUnitError(null);
+                                                }}
+                                                className="rounded-xl border border-zinc-200 px-4 py-3 text-sm font-semibold text-zinc-600 hover:bg-white"
+                                            >
+                                                Cancel
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                         </Field>
 
                         <Field label="SKU">
