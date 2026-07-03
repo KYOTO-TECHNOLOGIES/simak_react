@@ -40,6 +40,7 @@ interface ProductFormData {
     is_available: boolean;
     sku: string;
     expected_delivery_time: string;
+    sortorder: number;
 }
 
 interface ImageRow {
@@ -103,6 +104,7 @@ const AddProduct: React.FC = () => {
             expected_delivery_time: "",
             discount_price: "",
             sku: "",
+            sortorder: 1,
         },
     });
 
@@ -211,6 +213,7 @@ const AddProduct: React.FC = () => {
         if (data.sku) fd.append("sku", data.sku);
         if (data.expected_delivery_time)
             fd.append("expected_delivery_time", data.expected_delivery_time);
+        if (Number.isFinite(data.sortorder)) fd.append("sortorder", String(data.sortorder));
 
         fd.append("available_emirates", JSON.stringify(selectedLocations));
 
@@ -445,6 +448,23 @@ const AddProduct: React.FC = () => {
                                 {...register("sku")}
                                 className={inputClass}
                                 placeholder="e.g., FISH-001"
+                            />
+                        </Field>
+
+                        <Field label="Sort Order" error={errors.sortorder?.message}>
+                            <input
+                                type="number"
+                                min={1}
+                                step={1}
+                                {...register("sortorder", {
+                                    required: "Sort order is required",
+                                    valueAsNumber: true,
+                                    min: { value: 1, message: "Sort order must be at least 1" },
+                                    validate: (v) =>
+                                        Number.isInteger(v) || "Sort order must be a whole number",
+                                })}
+                                className={inputClass}
+                                placeholder="1"
                             />
                         </Field>
                     </div>
